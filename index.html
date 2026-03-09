@@ -1961,7 +1961,8 @@ body::before{content:'';position:fixed;inset:0;opacity:0.022;pointer-events:none
 <!-- MAINTENANCE OVERLAY -->
 <div id="maintenanceOverlay" style="display:none;position:fixed;inset:0;z-index:9999;
   background:linear-gradient(135deg,#060609 0%,#0d0010 50%,#060609 100%);
-  flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;">
+  flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;
+  user-select:none;">
 
   <!-- Анимированный фон -->
   <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;">
@@ -3754,11 +3755,15 @@ async function sbGetSettings(){
   const {data} = await getSB().from('settings').select('*');
   const map = {};
   (data||[]).forEach(r=>map[r.key]=r.value);
-  return { defaultUserSupply: parseInt(map.default_supply||'10'), bank: parseFloat(map.bank||'0') };
+  return {
+    defaultUserSupply: parseInt(map.default_supply||'10'),
+    bank: parseFloat(map.bank||'0'),
+    maintenance: map.maintenance||null
+  };
 }
 
 async function sbSetSetting(key, value){
-  await getSB().from('settings').update({value:String(value)}).eq('key', key);
+  await getSB().from('settings').upsert({key, value:String(value)}, {onConflict:'key'});
 }
 
 // Кэши для синхронных вызовов
@@ -3953,7 +3958,10 @@ async function doLogin(){
   renderUpgrades();
 
   // Проверить технический перерыв (не для админов)
-  if (!isAdmin(username)) checkMaintenance();
+  if (!isAdmin(username)) {
+    await refreshSettings();
+    checkMaintenance();
+  }
 
   writeLog('LOGIN', `${username} вошёл в систему`);
   toast(`✓ Добро пожаловать, ${username}!`, 'ok');
