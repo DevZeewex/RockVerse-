@@ -5,7 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ROCKVERSE — NFT Platform</title>
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=IBM+Plex+Mono:wght@300;400;700&family=Unbounded:wght@700;900&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+// Supabase SDK compatibility shim
+window._supabaseReady = false;
+document.addEventListener('DOMContentLoaded', function() {
+  // The UMD build exports as 'supabase' global
+  if (typeof supabase !== 'undefined') {
+    window._sbClient = supabase.createClient(
+      'https://xngsvwwstpqbwkniuraj.supabase.co',
+      'sb_publishable_6wAUXZ4lbNVKdzyP5J2oXA_Ja-pABCI'
+    );
+    window._supabaseReady = true;
+  }
+});
+</script>
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box;}
 :root{
@@ -3354,24 +3368,34 @@ let currentUser = null; // никнейм залогиненного
 // ═══════════════════════════════
 const SUPABASE_URL = 'https://xngsvwwstpqbwkniuraj.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_6wAUXZ4lbNVKdzyP5J2oXA_Ja-pABCI';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+// sb будет инициализирован после загрузки SDK
+let sb = null;
+function getSB() {
+  if (sb) return sb;
+  if (typeof supabase !== 'undefined') {
+    sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  } else if (window._sbClient) {
+    sb = window._sbClient;
+  }
+  return sb;
+}
 
 // ─────────────────────────────────────────
 //  USERS
 // ─────────────────────────────────────────
 async function sbGetUser(username){
-  const {data} = await sb.from('users').select('*').eq('username', username).single();
+  const {data} = await getSB().from('users').select('*').eq('username', username).single();
   return data;
 }
 
 async function sbCreateUser(username, password){
-  const {error} = await sb.from('users').insert({username, password});
+  const {error} = await getSB().from('users').insert({username, password});
   return !error;
 }
 
 async function sbSaveProgress(){
   if(!currentUser) return;
-  await sb.from('users').update({
+  await getSB().from('users').update({
     rock: state.rock,
     total_rock: state.totalRock,
     clicks: state.clicks,
@@ -3382,7 +3406,7 @@ async function sbSaveProgress(){
   }).eq('username', currentUser);
 
   // Сохранить NFT — удалить старые и вставить новые
-  await sb.from('my_nfts').delete().eq('owner', currentUser);
+  await getSB().from('my_nfts').delete().eq('owner', currentUser);
   if(state.myNFTs.length){
     const rows = state.myNFTs.map(n=>({
       owner: currentUser,
@@ -3393,7 +3417,7 @@ async function sbSaveProgress(){
       custom_image: n.customImage||null,
       bought_at: n.boughtAt ? new Date(n.boughtAt).toISOString() : new Date().toISOString(),
     }));
-    await sb.from('my_nfts').insert(rows);
+    await getSB().from('my_nfts').insert(rows);
   }
 }
 
@@ -3408,7 +3432,7 @@ async function sbLoadProgress(username){
   state.colVal    = user.col_val   || 0;
   state.upgrades  = user.upgrades  || {};
 
-  const {data: nfts} = await sb.from('my_nfts').select('*').eq('owner', username);
+  const {data: nfts} = await getSB().from('my_nfts').select('*').eq('owner', username);
   state.myNFTs = (nfts||[]).map(n=>({
     id: n.nft_id, name: n.name, collection: n.collection,
     colStyle: n.col_style, price: n.price, rarity: n.rarity,
@@ -3427,7 +3451,7 @@ function loadProgress(u){ /* теперь async через sbLoadProgress */ }
 //  LISTINGS (лоты на продажу)
 // ─────────────────────────────────────────
 async function sbGetListings(){
-  const {data} = await sb.from('listings').select('*').eq('is_active', true).order('listed_at', {ascending:false});
+  const {data} = await getSB().from('listings').select('*').eq('is_active', true).order('listed_at', {ascending:false});
   return (data||[]).map(r=>({
     listingId: r.listing_id, seller: r.seller,
     id: r.nft_id, name: r.name, collection: r.collection,
@@ -3440,7 +3464,7 @@ async function sbGetListings(){
 
 async function sbAddListing(nft, price){
   const lid = 'LST'+Date.now();
-  await sb.from('listings').insert({
+  await getSB().from('listings').insert({
     listing_id: lid, seller: currentUser,
     nft_id: nft.id, name: nft.name, collection: nft.collection,
     col_style: nft.colStyle, price, rarity: nft.rarity,
@@ -3451,7 +3475,7 @@ async function sbAddListing(nft, price){
 }
 
 async function sbRemoveListing(listingId){
-  await sb.from('listings').update({is_active:false}).eq('listing_id', listingId);
+  await getSB().from('listings').update({is_active:false}).eq('listing_id', listingId);
 }
 
 // Кэш листингов для синхронных вызовов
@@ -3465,7 +3489,7 @@ async function refreshListings(){
 //  TRADES
 // ─────────────────────────────────────────
 async function sbGetTrades(){
-  const {data} = await sb.from('trades').select('*').order('created_at', {ascending:false});
+  const {data} = await getSB().from('trades').select('*').order('created_at', {ascending:false});
   return (data||[]).map(r=>({
     id: r.id, from: r.from_user, to: r.to_user,
     giveNFTs: r.give_nfts||[], giveRock: r.give_rock||0,
@@ -3478,7 +3502,7 @@ async function sbGetTrades(){
 }
 
 async function sbCreateTrade(trade){
-  await sb.from('trades').insert({
+  await getSB().from('trades').insert({
     id: trade.id, from_user: trade.from, to_user: trade.to||null,
     give_nfts: trade.giveNFTs, give_rock: trade.giveRock,
     want_nfts: trade.wantNFTs, want_rock: trade.wantRock,
@@ -3491,7 +3515,7 @@ async function sbUpdateTrade(id, updates){
   if(updates.status)     mapped.status=updates.status;
   if(updates.acceptedBy) mapped.accepted_by=updates.acceptedBy;
   if(updates.completedAt)mapped.completed_at=new Date(updates.completedAt).toISOString();
-  await sb.from('trades').update(mapped).eq('id', id);
+  await getSB().from('trades').update(mapped).eq('id', id);
 }
 
 let _tradesCache = [];
@@ -3505,7 +3529,7 @@ async function refreshTrades(){
 //  MODERATION
 // ─────────────────────────────────────────
 async function sbGetModQueue(){
-  const {data} = await sb.from('moderation').select('*').order('created_at', {ascending:false});
+  const {data} = await getSB().from('moderation').select('*').order('created_at', {ascending:false});
   return (data||[]).map(r=>({
     id: r.id, name: r.name, collection: r.collection,
     colStyle: r.col_style, price: r.price, rarity: r.rarity,
@@ -3518,7 +3542,7 @@ async function sbGetModQueue(){
 }
 
 async function sbSubmitMod(nft){
-  await sb.from('moderation').insert({
+  await getSB().from('moderation').insert({
     submitted_by: nft.submittedBy,
     name: nft.name, collection: nft.collection,
     col_style: nft.colStyle||null, price: nft.price,
@@ -3529,11 +3553,11 @@ async function sbSubmitMod(nft){
 }
 
 async function sbApproveMod(modId, nft){
-  await sb.from('moderation').update({mod_status:'approved'}).eq('id', modId);
+  await getSB().from('moderation').update({mod_status:'approved'}).eq('id', modId);
 }
 
 async function sbRejectMod(modId, note){
-  await sb.from('moderation').update({mod_status:'rejected', mod_note:note||null}).eq('id', modId);
+  await getSB().from('moderation').update({mod_status:'rejected', mod_note:note||null}).eq('id', modId);
 }
 
 let _modCache = [];
@@ -3546,30 +3570,30 @@ async function refreshModQueue(){
 //  NOTIFICATIONS
 // ─────────────────────────────────────────
 async function sbAddNotification(username, type, text){
-  await sb.from('notifications').insert({username, type, text});
+  await getSB().from('notifications').insert({username, type, text});
 }
 
 async function sbGetNotifications(username){
-  const {data} = await sb.from('notifications').select('*')
+  const {data} = await getSB().from('notifications').select('*')
     .eq('username', username).eq('is_read', false)
     .order('created_at', {ascending:false});
   return data||[];
 }
 
 async function sbMarkNotifsRead(username){
-  await sb.from('notifications').update({is_read:true}).eq('username', username);
+  await getSB().from('notifications').update({is_read:true}).eq('username', username);
 }
 
 // ─────────────────────────────────────────
 //  LOGS
 // ─────────────────────────────────────────
 async function sbWriteLog(type, message){
-  await sb.from('logs').insert({type, message});
+  await getSB().from('logs').insert({type, message});
 }
 
 function getLogs(){ return []; } // не используется на клиенте
 async function sbGetLogs(){
-  const {data} = await sb.from('logs').select('*').order('created_at', {ascending:false}).limit(200);
+  const {data} = await getSB().from('logs').select('*').order('created_at', {ascending:false}).limit(200);
   return (data||[]).map(r=>({
     type: r.type, msg: r.message,
     time: new Date(r.created_at).toLocaleString('ru-RU'),
@@ -3580,12 +3604,12 @@ async function sbGetLogs(){
 //  BANK & SETTINGS
 // ─────────────────────────────────────────
 async function sbGetBank(){
-  const {data} = await sb.from('settings').select('value').eq('key','bank').single();
+  const {data} = await getSB().from('settings').select('value').eq('key','bank').single();
   return parseFloat(data?.value||'0');
 }
 
 async function sbSetBank(val){
-  await sb.from('settings').update({value:String(val)}).eq('key','bank');
+  await getSB().from('settings').update({value:String(val)}).eq('key','bank');
 }
 
 async function sbAddToBank(amount){
@@ -3594,14 +3618,14 @@ async function sbAddToBank(amount){
 }
 
 async function sbGetSettings(){
-  const {data} = await sb.from('settings').select('*');
+  const {data} = await getSB().from('settings').select('*');
   const map = {};
   (data||[]).forEach(r=>map[r.key]=r.value);
   return { defaultUserSupply: parseInt(map.default_supply||'10'), bank: parseFloat(map.bank||'0') };
 }
 
 async function sbSetSetting(key, value){
-  await sb.from('settings').update({value:String(value)}).eq('key', key);
+  await getSB().from('settings').update({value:String(value)}).eq('key', key);
 }
 
 // Кэши для синхронных вызовов
@@ -3624,26 +3648,26 @@ async function refreshSettings(){
 //  ADMIN — пользователи
 // ─────────────────────────────────────────
 async function sbGetAllUsers(){
-  const {data} = await sb.from('users').select('username,is_admin,is_banned,ban_reason,is_mint_banned,rock,created_at').order('created_at',{ascending:false});
+  const {data} = await getSB().from('users').select('username,is_admin,is_banned,ban_reason,is_mint_banned,rock,created_at').order('created_at',{ascending:false});
   return data||[];
 }
 
 async function sbBanUser(username, reason){
-  await sb.from('users').update({is_banned:true, ban_reason:reason||''}).eq('username',username);
+  await getSB().from('users').update({is_banned:true, ban_reason:reason||''}).eq('username',username);
 }
 
 async function sbUnbanUser(username){
-  await sb.from('users').update({is_banned:false, ban_reason:null}).eq('username',username);
+  await getSB().from('users').update({is_banned:false, ban_reason:null}).eq('username',username);
 }
 
 async function sbToggleMintBan(username, val){
-  await sb.from('users').update({is_mint_banned:val}).eq('username',username);
+  await getSB().from('users').update({is_mint_banned:val}).eq('username',username);
 }
 
 async function sbGiveRock(username, amount){
   const user = await sbGetUser(username);
   if(!user) return false;
-  await sb.from('users').update({rock:(user.rock||0)+amount, total_rock:(user.total_rock||0)+amount}).eq('username',username);
+  await getSB().from('users').update({rock:(user.rock||0)+amount, total_rock:(user.total_rock||0)+amount}).eq('username',username);
   return true;
 }
 
@@ -3835,6 +3859,8 @@ async function doLogout(){
   clearAuthErr();
   switchAuthTab('login');
 }
+
+function switchAuthTab(tab){
   document.getElementById('formLogin').style.display    = tab==='login'    ? 'flex' : 'none';
   document.getElementById('formRegister').style.display = tab==='register' ? 'flex' : 'none';
   document.getElementById('tabLogin').classList.toggle('active',    tab==='login');
@@ -3955,7 +3981,7 @@ async function moderateNFT(nftId, action, idx) {
     MARKET_NFTS.unshift(marketNFT);
 
     // Добавить NFT в коллекцию автора через Supabase
-    await sb.from('my_nfts').insert({
+    await getSB().from('my_nfts').insert({
       owner: nft.submittedBy,
       nft_id: nft.id, name: nft.name, collection: nft.collection,
       col_style: nft.colStyle||null, price: nft.price, rarity: nft.rarity,
@@ -3985,7 +4011,7 @@ async function moderateNFT(nftId, action, idx) {
     // Вернуть 25,000 ROCK автору
     const author = await sbGetUser(nft.submittedBy);
     if (author) {
-      await sb.from('users').update({rock:(author.rock||0)+25000}).eq('username', nft.submittedBy);
+      await getSB().from('users').update({rock:(author.rock||0)+25000}).eq('username', nft.submittedBy);
     }
 
     // Уведомление
@@ -4100,7 +4126,7 @@ async function adminGiveNFT() {
     isAdminGift: true, colStyle: null, customImage: null,
   };
 
-  await sb.from('my_nfts').insert({
+  await getSB().from('my_nfts').insert({
     owner: username, nft_id: newNFT.id, name: nftName,
     collection: nftCol, price: nftVal, rarity, royalty: '0%',
     badge: 'rare', seed: newNFT.seed, likes: 0, is_admin_gift: true,
@@ -4120,7 +4146,7 @@ async function adminGiveNFT() {
 }
 
 async function adminClearLogs() {
-  await sb.from('logs').delete().neq('id','00000000-0000-0000-0000-000000000000');
+  await getSB().from('logs').delete().neq('id','00000000-0000-0000-0000-000000000000');
   renderAdminLogs();
   toast('Логи очищены', 'info');
 }
@@ -4315,7 +4341,7 @@ async function buyUserListing(listingId, ev){
   // Начислить ROCK продавцу
   const seller = await sbGetUser(listing.seller);
   if(seller){
-    await sb.from('users').update({rock:(seller.rock||0)+sellerGets}).eq('username',listing.seller);
+    await getSB().from('users').update({rock:(seller.rock||0)+sellerGets}).eq('username',listing.seller);
     await sbAddNotification(listing.seller,'ok',
       `✓ NFT «${listing.name}» продан за ${listing.price.toLocaleString()} ROCK! Получено: ${sellerGets.toLocaleString()} ROCK`);
   }
@@ -4430,7 +4456,7 @@ async function doLotteryDraw(){
   // Начислить приз победителю
   const winUser = await sbGetUser(winner);
   if(winUser){
-    await sb.from('users').update({rock:(winUser.rock||0)+prize}).eq('username', winner);
+    await getSB().from('users').update({rock:(winUser.rock||0)+prize}).eq('username', winner);
     await sbAddNotification(winner,'ok',`🏆 Ты выиграл лотерею! +${prize.toLocaleString()} ROCK из банка сайта!`);
   }
 
@@ -5397,7 +5423,7 @@ async function confirmTrade(){
 
   // Инициатор получает мои NFT через Supabase
   for(const nft of myGivenNFTs){
-    await sb.from('my_nfts').insert({
+    await getSB().from('my_nfts').insert({
       owner: trade.from, nft_id: nft.id||('#T'+Date.now()),
       name: nft.name, collection: nft.collection,
       col_style: nft.colStyle||null, price: nft.price,
@@ -5408,7 +5434,7 @@ async function confirmTrade(){
   }
   if(trade.wantRock>0){
     const initiator = await sbGetUser(trade.from);
-    if(initiator) await sb.from('users').update({rock:(initiator.rock||0)+trade.wantRock}).eq('username',trade.from);
+    if(initiator) await getSB().from('users').update({rock:(initiator.rock||0)+trade.wantRock}).eq('username',trade.from);
   }
 
   await sbAddNotification(trade.from,'ok',
@@ -5635,7 +5661,7 @@ async function seedAdmins() {
   for (const [username, password] of Object.entries(ADMIN_DB)) {
     const existing = await sbGetUser(username);
     if (!existing) {
-      await sb.from('users').insert({username, password, is_admin: true});
+      await getSB().from('users').insert({username, password, is_admin: true});
     }
   }
 }
