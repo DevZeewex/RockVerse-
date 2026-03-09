@@ -370,11 +370,13 @@ body::before{content:'';position:fixed;inset:0;opacity:0.022;pointer-events:none
   position:fixed;inset:0;background:rgba(0,0,0,.88);backdrop-filter:blur(10px);
   z-index:1000;display:flex;align-items:center;justify-content:center;
   opacity:0;pointer-events:none;transition:opacity .3s;
+  padding:1rem;
 }
 .modal-overlay.open{opacity:1;pointer-events:all;}
 .modal{
   background:var(--s);border:1px solid var(--b2);width:90%;max-width:500px;
   padding:2rem;position:relative;transform:translateY(20px);transition:transform .3s;
+  max-height:90vh;overflow-y:auto;
 }
 .modal-overlay.open .modal{transform:translateY(0);}
 .modal::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
@@ -385,7 +387,7 @@ body::before{content:'';position:fixed;inset:0;opacity:0.022;pointer-events:none
 .modal-title{font-family:'Unbounded',sans-serif;font-size:1.3rem;font-weight:900;
   letter-spacing:-1px;margin-bottom:.25rem;}
 .modal-sub{font-size:.65rem;color:var(--muted);letter-spacing:1px;margin-bottom:1.25rem;}
-.modal-img{width:100%;aspect-ratio:1;margin-bottom:1.25rem;}
+.modal-img{width:100%;aspect-ratio:1;margin-bottom:1.25rem;max-height:260px;}
 .modal-img canvas{width:100%;height:100%;}
 .modal-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:1.25rem;}
 .md-item{background:var(--bg);padding:.75rem;}
@@ -395,6 +397,12 @@ body::before{content:'';position:fixed;inset:0;opacity:0.022;pointer-events:none
   justify-content:space-between;align-items:center;margin-bottom:1rem;}
 .mp-price{font-family:'Orbitron',monospace;font-size:1.8rem;color:var(--gold);font-weight:700;}
 .mp-label{font-size:.6rem;color:var(--muted);letter-spacing:1px;}
+@media(max-width:768px){
+  .modal{padding:1.25rem;width:95%;}
+  .modal-img{max-height:200px;}
+  .modal-title{font-size:1rem;}
+  .mp-price{font-size:1.3rem;}
+}
 
 /* TOAST */
 .toast{
@@ -2223,6 +2231,14 @@ function drawNFT(canvas, nft, size=280){
   }
 }
 
+// Конвертировать hex цвет в rgba с альфой
+function hexA(hex, alpha){
+  hex = hex.replace('#','');
+  if(hex.length===3) hex=hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+  const ri=parseInt(hex.slice(0,2),16), gi=parseInt(hex.slice(2,4),16), bi=parseInt(hex.slice(4,6),16);
+  return `rgba(${ri},${gi},${bi},${alpha})`;
+}
+
 function drawGem(canvas, seed, size=400, style='normal', colStyle=null){
   canvas.width=canvas.height=size;
   const ctx=canvas.getContext('2d'), r=rng(seed*7+13);
@@ -2248,7 +2264,7 @@ function drawGem(canvas, seed, size=400, style='normal', colStyle=null){
   for(let i=0;i<10;i++){
     const x=r()*size,y=r()*size,rad=20+r()*90,c=pal[Math.floor(r()*pal.length)];
     const g=ctx.createRadialGradient(x,y,0,x,y,rad);
-    g.addColorStop(0,c+'35'); g.addColorStop(1,'transparent');
+    g.addColorStop(0,hexA(c,0.21)); g.addColorStop(1,'transparent');
     ctx.fillStyle=g; ctx.beginPath(); ctx.arc(x,y,rad,0,Math.PI*2); ctx.fill();
   }
 
@@ -2380,7 +2396,7 @@ function draw3DCube(ctx, cx, cy, R, pal, bgCol, r){
     [cx - s,    cy - iso + s*0.1 ],
   ];
   const tg = ctx.createLinearGradient(cx-s, cy-iso-s, cx+s, cy);
-  tg.addColorStop(0, pal[0]+'ee'); tg.addColorStop(1, pal[1]+'aa');
+  tg.addColorStop(0, hexA(pal[0],0.93)); tg.addColorStop(1, hexA(pal[1],0.67));
   ctx.beginPath(); top.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.closePath();
   ctx.fillStyle=tg; ctx.fill();
 
@@ -2392,7 +2408,7 @@ function draw3DCube(ctx, cx, cy, R, pal, bgCol, r){
     [cx - s, cy + s*0.5 + s*0.1],
   ];
   const lg = ctx.createLinearGradient(cx-s, cy, cx, cy+s);
-  lg.addColorStop(0, pal[1]+'cc'); lg.addColorStop(1, '#000000aa');
+  lg.addColorStop(0, hexA(pal[1],0.80)); lg.addColorStop(1, '#000000aa');
   ctx.beginPath(); left.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.closePath();
   ctx.fillStyle=lg; ctx.fill();
 
@@ -2404,13 +2420,13 @@ function draw3DCube(ctx, cx, cy, R, pal, bgCol, r){
     [cx,     cy + s*1.1       ],
   ];
   const rg = ctx.createLinearGradient(cx, cy, cx+s, cy+s);
-  rg.addColorStop(0, pal[2]+'bb'); rg.addColorStop(1, '#000000cc');
+  rg.addColorStop(0, hexA(pal[2],0.73)); rg.addColorStop(1, '#000000cc');
   ctx.beginPath(); right.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.closePath();
   ctx.fillStyle=rg; ctx.fill();
 
   // Рёбра с glow
   ctx.shadowColor=pal[0]; ctx.shadowBlur=18;
-  ctx.strokeStyle=pal[0]+'cc'; ctx.lineWidth=1.5;
+  ctx.strokeStyle=hexA(pal[0],0.80); ctx.lineWidth=1.5;
   [top,left,right].forEach(face=>{
     ctx.beginPath(); face.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.closePath(); ctx.stroke();
   });
@@ -2431,7 +2447,7 @@ function draw3DCube(ctx, cx, cy, R, pal, bgCol, r){
     const angle=r()*Math.PI*2, dist=R*0.85+r()*R*0.3;
     const px=cx+Math.cos(angle)*dist, py=cy+Math.sin(angle)*dist;
     ctx.beginPath(); ctx.arc(px,py,1.5+r()*2,0,Math.PI*2);
-    ctx.fillStyle=pal[i%pal.length]+'cc'; ctx.fill();
+    ctx.fillStyle=hexA(pal[i%pal.length],0.80); ctx.fill();
   }
 }
 
@@ -2439,9 +2455,9 @@ function draw3DSphere(ctx, cx, cy, R, pal, bgCol, r){
   // Основная сфера
   const sg=ctx.createRadialGradient(cx-R*0.35,cy-R*0.35,R*0.05,cx,cy,R);
   sg.addColorStop(0,'rgba(255,255,255,0.55)');
-  sg.addColorStop(0.15, pal[0]+'ff');
-  sg.addColorStop(0.5,  pal[1]+'dd');
-  sg.addColorStop(0.85, pal[2]||pal[1]+'88');
+  sg.addColorStop(0.15, hexA(pal[0],1.0));
+  sg.addColorStop(0.5,  hexA(pal[1],0.87));
+  sg.addColorStop(0.85, pal[2]||hexA(pal[1],0.53));
   sg.addColorStop(1,    'rgba(0,0,0,0.9)');
   ctx.shadowColor=pal[0]; ctx.shadowBlur=R*0.4;
   ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2);
@@ -2490,27 +2506,27 @@ function draw3DPyramid(ctx, cx, cy, R, pal, bgCol, r){
   // Левая грань
   const leftFace=[[topX,topY],[cx-b,baseY],[cx,baseY+iso],[topX,topY]];
   const lg=ctx.createLinearGradient(cx-b,baseY,topX,topY);
-  lg.addColorStop(0,pal[1]+'dd'); lg.addColorStop(1,pal[0]+'ff');
+  lg.addColorStop(0,hexA(pal[1],0.87)); lg.addColorStop(1,hexA(pal[0],1.0));
   ctx.beginPath(); leftFace.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));
   ctx.closePath(); ctx.fillStyle=lg; ctx.fill();
 
   // Правая грань
   const rightFace=[[topX,topY],[cx+b,baseY],[cx,baseY+iso],[topX,topY]];
   const rg=ctx.createLinearGradient(topX,topY,cx+b,baseY);
-  rg.addColorStop(0,pal[0]+'ff'); rg.addColorStop(1,'rgba(0,0,0,0.75)');
+  rg.addColorStop(0,hexA(pal[0],1.0)); rg.addColorStop(1,'rgba(0,0,0,0.75)');
   ctx.beginPath(); rightFace.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));
   ctx.closePath(); ctx.fillStyle=rg; ctx.fill();
 
   // Передняя грань
   const frontFace=[[topX,topY],[cx-b,baseY],[cx+b,baseY]];
   const fg=ctx.createLinearGradient(topX,topY,cx,baseY);
-  fg.addColorStop(0,pal[2]||pal[0]+'ff'); fg.addColorStop(1,pal[1]+'aa');
+  fg.addColorStop(0,pal[2]||hexA(pal[0],1.0)); fg.addColorStop(1,hexA(pal[1],0.67));
   ctx.beginPath(); frontFace.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y));
   ctx.closePath(); ctx.fillStyle=fg; ctx.fill();
 
   // Рёбра glow
   ctx.shadowColor=pal[0]; ctx.shadowBlur=20;
-  ctx.strokeStyle=pal[0]+'bb'; ctx.lineWidth=1.5;
+  ctx.strokeStyle=hexA(pal[0],0.73); ctx.lineWidth=1.5;
   [[topX,topY,cx-b,baseY],[topX,topY,cx+b,baseY],[topX,topY,cx,baseY+iso]].forEach(([x1,y1,x2,y2])=>{
     ctx.beginPath(); ctx.moveTo(x1,y1); ctx.lineTo(x2,y2); ctx.stroke();
   });
@@ -2566,8 +2582,8 @@ function draw3DTorus(ctx, cx, cy, R, pal, bgCol, r){
 
   // Дыра в центре (маска)
   const hole=ctx.createRadialGradient(cx,cy,innerR*0.5,cx,cy,innerR);
-  hole.addColorStop(0, bgCol+'ff');
-  hole.addColorStop(0.7, bgCol+'cc');
+  hole.addColorStop(0, hexA(bgCol,1.0));
+  hole.addColorStop(0.7, hexA(bgCol,0.80));
   hole.addColorStop(1,'transparent');
   ctx.beginPath(); ctx.ellipse(cx,cy,innerR,innerR*isoY,0,0,Math.PI*2);
   ctx.fillStyle=hole; ctx.fill();
@@ -2593,7 +2609,7 @@ function draw3DPrism(ctx, cx, cy, R, pal, bgCol, r){
   // Передняя грань
   const front=[[cx-w,cy-h*0.5],[cx+w,cy-h*0.5],[cx+w,cy+h*0.5],[cx-w,cy+h*0.5]];
   const fg2=ctx.createLinearGradient(cx-w,cy-h,cx,cy+h);
-  fg2.addColorStop(0,pal[0]+'ff'); fg2.addColorStop(0.4,pal[1]+'dd'); fg2.addColorStop(1,pal[2]||pal[0]+'88');
+  fg2.addColorStop(0,hexA(pal[0],1.0)); fg2.addColorStop(0.4,hexA(pal[1],0.87)); fg2.addColorStop(1,pal[2]||hexA(pal[0],0.53));
   ctx.beginPath(); front.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.closePath();
   ctx.fillStyle=fg2; ctx.fill();
 
@@ -2609,7 +2625,7 @@ function draw3DPrism(ctx, cx, cy, R, pal, bgCol, r){
   // Топ грань (горизонт)
   const top=[[cx-w,cy-h*0.5],[cx+w,cy-h*0.5],[cx+w+depth,cy-h*0.5+depth*0.5],[cx-w+depth*0.1,cy-h*0.5+depth*0.5]];
   const tg2=ctx.createLinearGradient(cx,cy-h,cx,cy-h+depth);
-  tg2.addColorStop(0,'rgba(255,255,255,0.55)'); tg2.addColorStop(1,pal[0]+'88');
+  tg2.addColorStop(0,'rgba(255,255,255,0.55)'); tg2.addColorStop(1,hexA(pal[0],0.53));
   ctx.beginPath(); top.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.closePath();
   ctx.fillStyle=tg2; ctx.fill();
 
@@ -2661,7 +2677,7 @@ function draw3DSingularity(ctx, cx, cy, R, size, pal, r){
   // Джет (вертикальные лучи)
   [[-1,1]].forEach(([dy])=>{
     const jg=ctx.createLinearGradient(cx,cy,cx,cy+dy*R*1.5);
-    jg.addColorStop(0,pal[0]+'cc'); jg.addColorStop(1,'transparent');
+    jg.addColorStop(0,hexA(pal[0],0.80)); jg.addColorStop(1,'transparent');
     ctx.save(); ctx.globalAlpha=0.7;
     ctx.beginPath(); ctx.moveTo(cx-R*0.04,cy); ctx.lineTo(cx+R*0.04,cy); ctx.lineTo(cx,cy+dy*R*1.4);
     ctx.closePath(); ctx.fillStyle=jg; ctx.fill();
@@ -2680,7 +2696,7 @@ function draw3DSingularity(ctx, cx, cy, R, size, pal, r){
   // Центральная сингулярность — пульсирующая точка
   const pg=ctx.createRadialGradient(cx,cy,0,cx,cy,R*0.2);
   pg.addColorStop(0,'rgba(255,255,255,1)');
-  pg.addColorStop(0.3,pal[0]+'ff');
+  pg.addColorStop(0.3,hexA(pal[0],1.0));
   pg.addColorStop(1,'transparent');
   ctx.beginPath(); ctx.arc(cx,cy,R*0.2,0,Math.PI*2);
   ctx.fillStyle=pg; ctx.fill();
