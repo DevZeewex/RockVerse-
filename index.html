@@ -2045,7 +2045,7 @@ body::before{content:'';position:fixed;inset:0;opacity:0.022;pointer-events:none
         <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--r),var(--gold));"></div>
         <div style="font-size:.6rem;letter-spacing:3px;text-transform:uppercase;color:var(--r);margin-bottom:1rem;">🏷 Мой промокод</div>
         <div id="myPromoDisplay" style="font-family:'Orbitron',monospace;font-size:1.8rem;font-weight:900;color:var(--gold);letter-spacing:6px;margin-bottom:1rem;">—</div>
-        <div id="myPromoCreate" style="display:none;">
+        <div id="myPromoCreate" style="display:block;">
           <div style="font-size:.65rem;color:var(--muted);margin-bottom:.75rem;">Придумай промокод — только буквы, от 4 до 12 символов</div>
           <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
             <input class="f-input" id="newPromoInput" placeholder="MYCODE" maxlength="12"
@@ -3780,12 +3780,12 @@ function rollReferralBox(){
 }
 
 async function sbGetPromo(code){
-  const {data} = await getSB().from('referrals').select('*').eq('code', code.toUpperCase()).single();
+  const {data} = await getSB().from('referrals').select('*').eq('code', code.toUpperCase()).maybeSingle();
   return data;
 }
 
 async function sbGetMyPromo(username){
-  const {data} = await getSB().from('referrals').select('*').eq('owner', username).single();
+  const {data} = await getSB().from('referrals').select('*').eq('owner', username).maybeSingle();
   return data;
 }
 
@@ -3816,7 +3816,7 @@ async function applyPromo(){
   if(promo.owner===currentUser){ errEl.textContent='⚠ Нельзя использовать свой промокод'; errEl.style.display='block'; return; }
 
   // Проверить не использовал ли уже
-  const {data: used} = await getSB().from('referral_uses').select('id').eq('username', currentUser).single();
+  const {data: used} = await getSB().from('referral_uses').select('id').eq('username', currentUser).maybeSingle();
   if(used){ errEl.textContent='⚠ Ты уже использовал промокод'; errEl.style.display='block'; return; }
 
   // Записать использование
@@ -3880,10 +3880,18 @@ async function createMyPromo(){
 }
 
 async function renderReferralPage(){
-  const promo = await sbGetMyPromo(currentUser);
+  if(!currentUser) return;
   const display = document.getElementById('myPromoDisplay');
   const createEl = document.getElementById('myPromoCreate');
   const statsEl  = document.getElementById('myPromoStats');
+  if(!display||!createEl||!statsEl) return;
+
+  // Показать форму создания пока грузим
+  display.textContent='—';
+  createEl.style.display='block';
+  statsEl.style.display='none';
+
+  const promo = await sbGetMyPromo(currentUser);
 
   if(promo){
     display.textContent = promo.code;
