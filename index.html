@@ -837,6 +837,32 @@ body::before{content:'';position:fixed;inset:0;opacity:0.022;pointer-events:none
   </div>
 </div>
 
+<!-- ПРОМОКОД МОДАЛ (после регистрации) -->
+<div id="promoModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.92);backdrop-filter:blur(12px);z-index:2000;align-items:center;justify-content:center;padding:1rem;">
+  <div style="background:var(--s);border:1px solid var(--b2);width:90%;max-width:420px;padding:2rem;position:relative;">
+    <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--r),var(--gold));"></div>
+    <div style="font-family:'Unbounded',sans-serif;font-size:1.2rem;font-weight:900;margin-bottom:.5rem;">🎁 Промокод</div>
+    <div style="font-size:.65rem;color:var(--muted);letter-spacing:1px;margin-bottom:1.5rem;">Если у тебя есть промокод от другого игрока — введи его и получи Стартовый бокс прямо сейчас</div>
+    <div class="auth-input-wrap" style="margin-bottom:.75rem;">
+      <label class="auth-input-label">Промокод</label>
+      <input class="auth-input" id="promoInput" placeholder="ТОЛЬКО БУКВЫ" style="text-transform:uppercase;letter-spacing:3px;" oninput="this.value=this.value.replace(/[^a-zA-Z]/g,'').toUpperCase()">
+    </div>
+    <div id="promoErr" style="font-size:.65rem;color:#ff4d6d;margin-bottom:.75rem;display:none;"></div>
+    <div id="promoOk" style="font-size:.65rem;color:var(--g);margin-bottom:.75rem;display:none;"></div>
+    <button onclick="applyPromo()" style="width:100%;padding:12px;background:var(--r);color:white;border:none;
+      font-family:'IBM Plex Mono',monospace;font-size:.78rem;font-weight:700;letter-spacing:2px;
+      text-transform:uppercase;cursor:pointer;margin-bottom:.75rem;transition:all .2s;"
+      onmouseover="this.style.background='var(--r2)'" onmouseout="this.style.background='var(--r)'">
+      🎁 Применить
+    </button>
+    <button onclick="skipPromo()" style="width:100%;padding:10px;background:transparent;color:var(--muted);border:1px solid var(--b2);
+      font-family:'IBM Plex Mono',monospace;font-size:.68rem;letter-spacing:1px;cursor:pointer;transition:all .2s;"
+      onmouseover="this.style.borderColor='var(--muted)'" onmouseout="this.style.borderColor='var(--b2)'">
+      Пропустить
+    </button>
+  </div>
+</div>
+
 <!-- TOPBAR -->
 <header class="topbar">
   <div class="t-logo">
@@ -866,6 +892,7 @@ body::before{content:'';position:fixed;inset:0;opacity:0.022;pointer-events:none
     <button class="t-nav-btn" onclick="goPage('bank',this)" style="color:var(--gold);">💰 Банк</button>
     <button class="t-nav-btn" onclick="goPage('mint',this)">Mint NFT</button>
     <button class="t-nav-btn" onclick="goPage('collection',this)">Коллекция</button>
+    <button class="t-nav-btn" onclick="goPage('referral',this)" style="color:var(--cyan);border-color:rgba(0,229,255,0.15)">🔗 Рефералы</button>
     <button class="t-nav-btn" id="adminNavBtn" onclick="goPage('admin',this)" style="display:none;color:#a855f7;border-color:rgba(168,85,247,0.3)">⚙ Админ</button>
   </nav>
 
@@ -2002,6 +2029,73 @@ body::before{content:'';position:fixed;inset:0;opacity:0.022;pointer-events:none
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- REFERRAL PAGE -->
+<div class="page" id="page-referral" style="flex-direction:column;overflow:hidden;">
+  <div style="padding:1.5rem 2rem;border-bottom:1px solid var(--b2);flex-shrink:0;display:flex;align-items:center;justify-content:space-between;">
+    <h1 class="page-title" style="margin:0;">🔗 Реферальная <span>система</span></h1>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:1.5rem 2rem;">
+    <div style="max-width:700px;margin:0 auto;display:flex;flex-direction:column;gap:1.25rem;">
+
+      <!-- МОЙ ПРОМОКОД -->
+      <div style="background:var(--s);border:1px solid var(--b2);padding:1.5rem;position:relative;">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--r),var(--gold));"></div>
+        <div style="font-size:.6rem;letter-spacing:3px;text-transform:uppercase;color:var(--r);margin-bottom:1rem;">🏷 Мой промокод</div>
+        <div id="myPromoDisplay" style="font-family:'Orbitron',monospace;font-size:1.8rem;font-weight:900;color:var(--gold);letter-spacing:6px;margin-bottom:1rem;">—</div>
+        <div id="myPromoCreate" style="display:none;">
+          <div style="font-size:.65rem;color:var(--muted);margin-bottom:.75rem;">Придумай промокод — только буквы, от 4 до 12 символов</div>
+          <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
+            <input class="f-input" id="newPromoInput" placeholder="MYCODE" maxlength="12"
+              style="flex:1;min-width:160px;text-transform:uppercase;letter-spacing:3px;"
+              oninput="this.value=this.value.replace(/[^a-zA-Z]/g,'').toUpperCase()">
+            <button onclick="createMyPromo()" style="padding:10px 24px;background:var(--r);color:white;border:none;
+              font-family:'IBM Plex Mono',monospace;font-size:.72rem;font-weight:700;letter-spacing:1px;cursor:pointer;white-space:nowrap;transition:all .2s;"
+              onmouseover="this.style.background='var(--r2)'" onmouseout="this.style.background='var(--r)'">
+              Создать
+            </button>
+          </div>
+          <div id="createPromoErr" style="font-size:.63rem;color:#ff4d6d;margin-top:.5rem;display:none;"></div>
+        </div>
+        <div id="myPromoStats" style="display:none;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--b2);">
+          <div style="display:flex;gap:2rem;">
+            <div>
+              <div style="font-size:.55rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;">Использований</div>
+              <div style="font-family:'Orbitron',monospace;font-size:1.2rem;font-weight:700;color:var(--cyan);" id="promoUseCount">0</div>
+            </div>
+            <div>
+              <div style="font-size:.55rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;">Заработано ROCK</div>
+              <div style="font-family:'Orbitron',monospace;font-size:1.2rem;font-weight:700;color:var(--gold);" id="promoEarnedRock">0</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- КАК ЭТО РАБОТАЕТ -->
+      <div style="background:var(--s);border:1px solid var(--b2);padding:1.5rem;position:relative;">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--cyan),#a855f7);"></div>
+        <div style="font-size:.6rem;letter-spacing:3px;text-transform:uppercase;color:var(--cyan);margin-bottom:1rem;">ℹ Как это работает</div>
+        <div style="display:flex;flex-direction:column;gap:.75rem;font-size:.7rem;color:var(--muted);line-height:1.7;">
+          <div>🔗 Поделись своим промокодом с другом</div>
+          <div>🎮 Друг регистрируется и вводит твой промокод</div>
+          <div>🎁 Друг сразу получает <span style="color:var(--gold);font-weight:700;">Стартовый бокс</span> с NFT</div>
+          <div>💰 Ты получаешь <span style="color:var(--gold);font-weight:700;">25,000 ROCK</span> когда друг наберёт 750 кликов и проведёт 30 минут онлайн</div>
+          <div style="color:rgba(255,255,255,.3);font-size:.62rem;margin-top:.25rem;">⚠ Новый игрок не может делать P2P обмены первые 15 минут в игре</div>
+        </div>
+      </div>
+
+      <!-- МОИ РЕФЕРАЛЫ -->
+      <div style="background:var(--s);border:1px solid var(--b2);padding:1.5rem;position:relative;">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--g),var(--cyan));"></div>
+        <div style="font-size:.6rem;letter-spacing:3px;text-transform:uppercase;color:var(--g);margin-bottom:1rem;">👥 Мои рефералы</div>
+        <div id="myReferralsList" style="display:flex;flex-direction:column;gap:.5rem;">
+          <div style="text-align:center;padding:2rem;color:var(--muted);font-size:.7rem;">Пока никто не использовал твой промокод</div>
+        </div>
+      </div>
+
+    </div>
   </div>
 </div>
 
@@ -3566,6 +3660,7 @@ function goPage(name, el){
   if(name==='mint') document.getElementById('mintBalance').textContent=fmt(Math.floor(state.rock));
   if(name==='boxes') renderBoxes();
   if(name==='bank') renderBankPage();
+  if(name==='referral') renderReferralPage();
   if(name==='catalog') initCatalog();
   if(name==='trade')   initTradePage();
   if(name==='admin'){
@@ -3644,6 +3739,221 @@ function getSB() {
 // ─────────────────────────────────────────
 //  USERS
 // ─────────────────────────────────────────
+// ═══════════════════════════════
+//  РЕФЕРАЛЬНАЯ СИСТЕМА
+// ═══════════════════════════════
+
+// Стартовый бокс — пул NFT до 7500 ROCK с шансами
+const REFERRAL_BOX_POOL = [
+  {id:'#0701', chance:10}, // Coral Crown 120
+  {id:'#0202', chance:8},  // Rocky Road 180
+  {id:'#0390', chance:7},  // Steel Spine 250
+  {id:'#0201', chance:6},  // Basalt Dream 320
+  {id:'#0700', chance:5},  // Deep Pearl 350
+  {id:'#0389', chance:4},  // Ember Whisper 400
+  {id:'#0077', chance:8},  // Granite Soul 450
+  {id:'#0391', chance:8},  // Titanium Ghost 550
+  {id:'#0156', chance:8},  // Lava Flow 750
+  {id:'#0502', chance:8},  // Shadow Pulse 800
+  {id:'#0302', chance:6},  // Sapphire Echo 950
+  {id:'#0289', chance:6},  // Iron Core 980
+  {id:'#0388', chance:4},  // Magma Throne 1100
+  {id:'#0042', chance:4},  // Obsidian Peak 1200
+  {id:'#0702', chance:3},  // Abyss Eye 1400
+  {id:'#0234', chance:1.5},// Quartz Veil 1650
+  {id:'#0602', chance:1.5},// Sunforge Relic 1800
+  {id:'#0501', chance:1},  // Phantom Gem 2200
+  {id:'#0802', chance:1},  // Binary Soul 3200
+  {id:'#0301', chance:1},  // Agate Dreams 3400
+  {id:'#0601', chance:1},  // Helios Fragment 4500
+  {id:'#0500', chance:0.5},// Void Wraith 5500
+];
+
+function rollReferralBox(){
+  const total = REFERRAL_BOX_POOL.reduce((s,n)=>s+n.chance,0);
+  let rand = Math.random()*total;
+  for(const entry of REFERRAL_BOX_POOL){
+    rand -= entry.chance;
+    if(rand <= 0) return MARKET_NFTS.find(n=>n.id===entry.id);
+  }
+  return MARKET_NFTS.find(n=>n.id===REFERRAL_BOX_POOL[0].id);
+}
+
+async function sbGetPromo(code){
+  const {data} = await getSB().from('referrals').select('*').eq('code', code.toUpperCase()).single();
+  return data;
+}
+
+async function sbGetMyPromo(username){
+  const {data} = await getSB().from('referrals').select('*').eq('owner', username).single();
+  return data;
+}
+
+async function sbCreatePromo(username, code){
+  const {error} = await getSB().from('referrals').insert({
+    owner: username, code: code.toUpperCase(),
+    use_count: 0, earned_rock: 0,
+  });
+  return !error;
+}
+
+async function sbGetReferralUsers(code){
+  const {data} = await getSB().from('referral_uses').select('*').eq('promo_code', code);
+  return data||[];
+}
+
+async function applyPromo(){
+  const code = document.getElementById('promoInput').value.trim().toUpperCase();
+  const errEl = document.getElementById('promoErr');
+  const okEl  = document.getElementById('promoOk');
+  errEl.style.display='none'; okEl.style.display='none';
+
+  if(!code){ errEl.textContent='⚠ Введи промокод'; errEl.style.display='block'; return; }
+  if(code.length<4||code.length>12){ errEl.textContent='⚠ От 4 до 12 букв'; errEl.style.display='block'; return; }
+
+  const promo = await sbGetPromo(code);
+  if(!promo){ errEl.textContent='⚠ Промокод не найден'; errEl.style.display='block'; return; }
+  if(promo.owner===currentUser){ errEl.textContent='⚠ Нельзя использовать свой промокод'; errEl.style.display='block'; return; }
+
+  // Проверить не использовал ли уже
+  const {data: used} = await getSB().from('referral_uses').select('id').eq('username', currentUser).single();
+  if(used){ errEl.textContent='⚠ Ты уже использовал промокод'; errEl.style.display='block'; return; }
+
+  // Записать использование
+  await getSB().from('referral_uses').insert({
+    promo_code: code, username: currentUser, owner: promo.owner,
+    rewarded: false, created_at: new Date().toISOString(),
+  });
+
+  // Выдать стартовый бокс
+  const nft = rollReferralBox();
+  if(nft){
+    const newNFT = {...nft, boughtAt: Date.now(), isStarterBox: true};
+    state.myNFTs.push(newNFT);
+    await getSB().from('my_nfts').insert({
+      owner: currentUser, nft_id: nft.id, name: nft.name,
+      collection: nft.collection, price: nft.price, rarity: nft.rarity,
+      royalty: nft.royalty, badge: nft.badge||null, seed: nft.seed||0,
+      col_style: nft.colStyle||null, likes: nft.likes||0,
+      is_admin_gift: false, custom_image: null,
+      bought_at: new Date().toISOString(),
+    });
+  }
+
+  // Обновить счётчик промокода
+  await getSB().from('referrals').update({use_count: (promo.use_count||0)+1}).eq('code', code);
+
+  okEl.textContent = `✓ Промокод применён! Ты получил NFT «${nft?.name||'Стартовый'}» в коллекцию!`;
+  okEl.style.display='block';
+  renderCollection();
+  setTimeout(()=>skipPromo(), 2500);
+}
+
+function skipPromo(){
+  document.getElementById('promoModal').style.display='none';
+}
+
+function showPromoModal(){
+  document.getElementById('promoModal').style.display='flex';
+  document.getElementById('promoInput').value='';
+  document.getElementById('promoErr').style.display='none';
+  document.getElementById('promoOk').style.display='none';
+}
+
+async function createMyPromo(){
+  const code = document.getElementById('newPromoInput').value.trim().toUpperCase();
+  const errEl = document.getElementById('createPromoErr');
+  errEl.style.display='none';
+
+  if(code.length<4){ errEl.textContent='⚠ Минимум 4 буквы'; errEl.style.display='block'; return; }
+  if(code.length>12){ errEl.textContent='⚠ Максимум 12 букв'; errEl.style.display='block'; return; }
+
+  // Проверить занят ли
+  const existing = await sbGetPromo(code);
+  if(existing){ errEl.textContent='⚠ Этот промокод уже занят'; errEl.style.display='block'; return; }
+
+  const ok = await sbCreatePromo(currentUser, code);
+  if(!ok){ errEl.textContent='⚠ Ошибка создания'; errEl.style.display='block'; return; }
+
+  renderReferralPage();
+  toast(`✓ Промокод ${code} создан!`, 'ok');
+}
+
+async function renderReferralPage(){
+  const promo = await sbGetMyPromo(currentUser);
+  const display = document.getElementById('myPromoDisplay');
+  const createEl = document.getElementById('myPromoCreate');
+  const statsEl  = document.getElementById('myPromoStats');
+
+  if(promo){
+    display.textContent = promo.code;
+    createEl.style.display='none';
+    statsEl.style.display='block';
+    document.getElementById('promoUseCount').textContent = promo.use_count||0;
+    document.getElementById('promoEarnedRock').textContent = (promo.earned_rock||0).toLocaleString();
+
+    // Рефералы
+    const uses = await sbGetReferralUsers(promo.code);
+    const list  = document.getElementById('myReferralsList');
+    if(!uses.length){
+      list.innerHTML='<div style="text-align:center;padding:2rem;color:var(--muted);font-size:.7rem;">Пока никто не использовал твой промокод</div>';
+    } else {
+      list.innerHTML = uses.map(u=>`
+        <div style="background:var(--bg);border:1px solid var(--b2);padding:.75rem 1rem;display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:.7rem;font-weight:700;">${u.username}</div>
+          <div style="font-size:.6rem;color:${u.rewarded?'var(--g)':'var(--muted)'};">
+            ${u.rewarded?'✓ +25,000 ROCK получено':'⏳ Ещё не выполнил условия'}
+          </div>
+        </div>
+      `).join('');
+    }
+  } else {
+    display.textContent='—';
+    createEl.style.display='block';
+    statsEl.style.display='none';
+  }
+}
+
+// Проверка и выдача наград рефереру
+async function checkReferralRewards(){
+  if(!currentUser) return;
+  // Найти неначисленные рефералы где текущий юзер — owner
+  const promo = await sbGetMyPromo(currentUser);
+  if(!promo) return;
+  const {data: uses} = await getSB().from('referral_uses')
+    .select('*').eq('owner', currentUser).eq('rewarded', false);
+  if(!uses||!uses.length) return;
+
+  for(const use of uses){
+    // Проверить условия реферала
+    const refUser = await sbGetUser(use.username);
+    if(!refUser) continue;
+    if((refUser.clicks||0)>=750 && (refUser.online_minutes||0)>=30){
+      // Начислить 25000 ROCK
+      await getSB().from('users').update({
+        rock: (refUser.rock||0) + 25000,
+        total_rock: (refUser.total_rock||0) + 25000,
+      }).eq('username', currentUser);
+      // Обновить запись
+      await getSB().from('referral_uses').update({rewarded:true}).eq('id', use.id);
+      await getSB().from('referrals').update({
+        earned_rock: (promo.earned_rock||0)+25000,
+      }).eq('code', promo.code);
+      toast(`🎉 +25,000 ROCK за реферала ${use.username}!`, 'ok');
+      state.rock += 25000; state.totalRock += 25000;
+      updateRockUI();
+    }
+  }
+}
+
+async function trackOnlineTime(){
+  if(!currentUser) return;
+  const user = await sbGetUser(currentUser);
+  if(!user) return;
+  const mins = (user.online_minutes||0)+1;
+  await getSB().from('users').update({online_minutes: mins}).eq('username', currentUser);
+}
+
 async function sbGetUser(username){
   const {data} = await getSB().from('users').select('*').eq('username', username).single();
   return data;
@@ -4162,7 +4472,12 @@ async function doRegister(){
   document.getElementById('regUser').value='';
   document.getElementById('regPass').value='';
   document.getElementById('regPass2').value='';
-  setTimeout(()=>{ switchAuthTab('login'); document.getElementById('loginUser').value=username; }, 1200);
+  setTimeout(()=>{
+    switchAuthTab('login');
+    document.getElementById('loginUser').value=username;
+    // Показать модал промокода после небольшой задержки
+    setTimeout(()=>showPromoModal(), 500);
+  }, 1200);
 }
 
 // ─────────────────────────────────────────
@@ -4304,6 +4619,10 @@ function showAuthErr(id, msg){
 
 // ── Автосохранение каждые 10 секунд
 setInterval(()=>{ if(currentUser) sbSaveProgress(); }, 10000);
+// Трекинг онлайн времени — каждую минуту
+setInterval(()=>{ if(currentUser) trackOnlineTime(); }, 60000);
+// Проверка наград рефереру — каждые 2 минуты
+setInterval(()=>{ if(currentUser) checkReferralRewards(); }, 120000);
 
 // ═══════════════════════════════
 //  MODERATION SYSTEM
