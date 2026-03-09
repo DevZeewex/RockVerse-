@@ -4001,8 +4001,8 @@ function getSB() {
 // ═══════════════════════════════
 
 const MINER_EVENT = {
-  start: new Date('2025-03-20T00:00:00'),
-  end:   new Date('2025-03-27T23:59:59'),
+  start: new Date('2026-03-20T00:00:00'),
+  end:   new Date('2026-03-27T23:59:59'),
 };
 
 // Состояние ивента
@@ -4073,7 +4073,7 @@ function updateEventTimers(){
 
   if(isEventSoon()){
     const diff = MINER_EVENT.start - now;
-    if(banner) banner.style.display = 'flex';
+    if(banner) { banner.style.display = 'flex'; }
     if(timerLabel) timerLabel.textContent = 'До начала';
     if(timerVal) timerVal.textContent = fmtTime(diff);
     if(minerTimerLabel) minerTimerLabel.textContent = 'До начала';
@@ -4082,7 +4082,7 @@ function updateEventTimers(){
     if(mobMinerNav) mobMinerNav.style.display = '';
   } else if(isEventActive()){
     const diff = MINER_EVENT.end - now;
-    if(banner) banner.style.display = 'flex';
+    if(banner) { banner.style.display = 'flex'; }
     if(timerLabel) timerLabel.textContent = 'До конца';
     if(timerVal) timerVal.textContent = fmtTime(diff);
     if(minerTimerLabel) minerTimerLabel.textContent = 'До конца';
@@ -5272,6 +5272,7 @@ async function doLogin(){
 
   updateAdminNav();
   updateRockUI();
+  updateEventTimers();
   renderMarket();
   renderCollection();
   renderUpgrades();
