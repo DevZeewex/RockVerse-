@@ -1774,6 +1774,35 @@ body::before{content:'';position:fixed;inset:0;opacity:0.022;pointer-events:none
       </div>
     </div>
 
+    <!-- УБАВИТЬ ROCK У ИГРОКА -->
+    <div style="background:var(--s);border:1px solid rgba(255,77,109,0.25);padding:1.5rem;position:relative;">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#ff4d6d,#a855f7);"></div>
+      <div style="font-size:.6rem;letter-spacing:3px;text-transform:uppercase;color:#ff4d6d;margin-bottom:1.25rem;">💸 Убавить ROCK у игрока</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-bottom:.75rem;">
+        <div>
+          <label class="f-label">Игрок</label>
+          <input class="f-input" id="adminTakeUser" placeholder="username" style="border-color:rgba(255,77,109,0.2);">
+        </div>
+        <div>
+          <label class="f-label">Сумма ROCK</label>
+          <input class="f-input" id="adminTakeAmount" type="number" min="1" placeholder="1000" style="border-color:rgba(255,77,109,0.2);">
+        </div>
+      </div>
+      <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:.75rem;">
+        <button onclick="document.getElementById('adminTakeAmount').value=1000"   style="padding:4px 10px;background:transparent;border:1px solid var(--b2);color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:.58rem;cursor:pointer;" onmouseover="this.style.borderColor='#ff4d6d';this.style.color='#ff4d6d'" onmouseout="this.style.borderColor='var(--b2)';this.style.color='var(--muted)'">-1K</button>
+        <button onclick="document.getElementById('adminTakeAmount').value=10000"  style="padding:4px 10px;background:transparent;border:1px solid var(--b2);color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:.58rem;cursor:pointer;" onmouseover="this.style.borderColor='#ff4d6d';this.style.color='#ff4d6d'" onmouseout="this.style.borderColor='var(--b2)';this.style.color='var(--muted)'">-10K</button>
+        <button onclick="document.getElementById('adminTakeAmount').value=100000" style="padding:4px 10px;background:transparent;border:1px solid var(--b2);color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:.58rem;cursor:pointer;" onmouseover="this.style.borderColor='#ff4d6d';this.style.color='#ff4d6d'" onmouseout="this.style.borderColor='var(--b2)';this.style.color='var(--muted)'">-100K</button>
+        <button onclick="document.getElementById('adminTakeAmount').value=999999" style="padding:4px 10px;background:rgba(255,77,109,.06);border:1px solid rgba(255,77,109,.25);color:#ff4d6d;font-family:'IBM Plex Mono',monospace;font-size:.58rem;cursor:pointer;" onmouseover="this.style.background='rgba(255,77,109,.18)'" onmouseout="this.style.background='rgba(255,77,109,.06)'">-999K</button>
+      </div>
+      <button onclick="adminTakeRock()" style="width:100%;padding:11px;background:rgba(255,77,109,0.12);
+        border:1px solid rgba(255,77,109,0.4);color:#ff4d6d;font-family:'IBM Plex Mono',monospace;
+        font-size:.75rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;"
+        onmouseover="this.style.background='rgba(255,77,109,0.25)'" onmouseout="this.style.background='rgba(255,77,109,0.12)'">
+        💸 Списать ROCK
+      </button>
+      <div id="adminTakeStatus" style="margin-top:.75rem;font-size:.65rem;color:var(--muted);"></div>
+    </div>
+
     <!-- ЛОГИ ТРАНЗАКЦИЙ -->
     <div style="background:var(--s);border:1px solid var(--b2);padding:1.5rem;position:relative;">
       <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--cyan),#a855f7);"></div>
@@ -2193,20 +2222,20 @@ const COLLECTION_STYLES = {
 
 // Коллекции с боксами
 const COLLECTIONS_BOXES = {
-  'Rock Genesis':   {boxPrice:500,   boxName:'Genesis Box',      nftIds:['#0042','#0077','#0201']},
-  'Crystal Series': {boxPrice:2000,  boxName:'Crystal Box',      nftIds:['#0113','#0234','#0301']},
-  'Lava Series':    {boxPrice:800,   boxName:'Lava Box',         nftIds:['#0156','#0388','#0389']},
-  'Deep Rock':      {boxPrice:1000,  boxName:'Deep Box',         nftIds:['#0289','#0390','#0391']},
-  'Shadow Realm':   {boxPrice:3000,  boxName:'Shadow Box',       nftIds:['#0500','#0501','#0502']},
-  'Solar Forge':    {boxPrice:5000,  boxName:'Solar Box',        nftIds:['#0600','#0601','#0602']},
-  'Aqua Depths':    {boxPrice:600,   boxName:'Aqua Box',         nftIds:['#0700','#0701','#0702']},
-  'Void Protocol':  {boxPrice:8000,  boxName:'Void Box',         nftIds:['#0800','#0801','#0802']},
-  'Neon Cube 3D':   {boxPrice:20000, boxName:'Neon Cube Box',    nftIds:['#3D01','#3D02','#3D03']},
-  'Plasma Sphere':  {boxPrice:35000, boxName:'Plasma Box',       nftIds:['#3D11','#3D12','#3D13']},
-  'Titan Pyramid':  {boxPrice:50000, boxName:'Titan Box',        nftIds:['#3D21','#3D22','#3D23']},
-  'Quantum Torus':  {boxPrice:80000, boxName:'Quantum Box',      nftIds:['#3D31','#3D32','#3D33']},
-  'Ice Prism':      {boxPrice:30000, boxName:'Ice Prism Box',    nftIds:['#3D41','#3D42','#3D43']},
-  'Singularity':    {boxPrice:200000,boxName:'⬛ SINGULARITY BOX',nftIds:['#3D51','#3D52','#3D53']},
+  'Rock Genesis':   {boxPrice:750,    boxName:'Genesis Box',      nftIds:['#0042','#0077','#0201']},
+  'Crystal Series': {boxPrice:3080,   boxName:'Crystal Box',      nftIds:['#0113','#0234','#0301']},
+  'Lava Series':    {boxPrice:1050,   boxName:'Lava Box',         nftIds:['#0156','#0388','#0389']},
+  'Deep Rock':      {boxPrice:830,    boxName:'Deep Box',         nftIds:['#0289','#0390','#0391']},
+  'Shadow Realm':   {boxPrice:3960,   boxName:'Shadow Box',       nftIds:['#0500','#0501','#0502']},
+  'Solar Forge':    {boxPrice:8540,   boxName:'Solar Box',        nftIds:['#0600','#0601','#0602']},
+  'Aqua Depths':    {boxPrice:870,    boxName:'Aqua Box',         nftIds:['#0700','#0701','#0702']},
+  'Void Protocol':  {boxPrice:17360,  boxName:'Void Box',         nftIds:['#0800','#0801','#0802']},
+  'Neon Cube 3D':   {boxPrice:100300, boxName:'Neon Cube Box',    nftIds:['#3D01','#3D02','#3D03']},
+  'Plasma Sphere':  {boxPrice:155400, boxName:'Plasma Box',       nftIds:['#3D11','#3D12','#3D13']},
+  'Titan Pyramid':  {boxPrice:217000, boxName:'Titan Box',        nftIds:['#3D21','#3D22','#3D23']},
+  'Quantum Torus':  {boxPrice:385000, boxName:'Quantum Box',      nftIds:['#3D31','#3D32','#3D33']},
+  'Ice Prism':      {boxPrice:117600, boxName:'Ice Prism Box',    nftIds:['#3D41','#3D42','#3D43']},
+  'Singularity':    {boxPrice:777777, boxName:'⬛ SINGULARITY BOX',nftIds:['#3D51','#3D52','#3D53']},
 };
 
 const MARKET_NFTS = [
@@ -3829,6 +3858,38 @@ async function sbGiveRock(username, amount){
   if(!user) return false;
   await getSB().from('users').update({rock:(user.rock||0)+amount, total_rock:(user.total_rock||0)+amount}).eq('username',username);
   return true;
+}
+
+async function sbTakeRock(username, amount){
+  const user = await sbGetUser(username);
+  if(!user) return {ok:false, msg:'Пользователь не найден'};
+  const current = user.rock || 0;
+  if(current < amount) return {ok:false, msg:`Недостаточно ROCK (у игрока ${current.toLocaleString()})`};
+  await getSB().from('users').update({rock: current - amount}).eq('username', username);
+  return {ok:true};
+}
+
+async function adminTakeRock(){
+  const username = document.getElementById('adminTakeUser').value.trim();
+  const amount   = parseInt(document.getElementById('adminTakeAmount').value) || 0;
+  const status   = document.getElementById('adminTakeStatus');
+  if(!username){ toast('Введи никнейм','err'); return; }
+  if(amount <= 0){ toast('Введи сумму','err'); return; }
+  const res = await sbTakeRock(username, amount);
+  if(!res.ok){
+    status.style.color = '#ff4d6d';
+    status.textContent = '❌ ' + res.msg;
+    toast('❌ ' + res.msg, 'err');
+    return;
+  }
+  if(currentUser === username){ state.rock = Math.max(0, state.rock - amount); updateRockUI(); }
+  writeLog('ADMIN', `${currentUser} списал ${amount.toLocaleString()} ROCK у ${username}`);
+  renderAdminLogs(); renderAdminUsers();
+  status.style.color = 'var(--g)';
+  status.textContent = `✓ Списано ${amount.toLocaleString()} ROCK у ${username}`;
+  document.getElementById('adminTakeUser').value   = '';
+  document.getElementById('adminTakeAmount').value = '';
+  toast(`✓ ${amount.toLocaleString()} ROCK списано у ${username}`, 'ok');
 }
 
 // ─────────────────────────────────────────
