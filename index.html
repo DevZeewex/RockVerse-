@@ -3363,7 +3363,7 @@ function openModal(idx, ev){
 function closeModal(){document.getElementById('modalOverlay').classList.remove('open');}
 function closeModalBg(e){if(e.target===document.getElementById('modalOverlay'))closeModal();}
 
-function doBuy(){
+async function doBuy(){
   if(!currentModal)return;
   const nft=currentModal;
   const maxS=nft.maxSupply||null;
@@ -3381,7 +3381,7 @@ function doBuy(){
   sbIncrementSold(nft.id);
 
   // Сохранить NFT в my_nfts
-  getSB().from('my_nfts').insert({
+  const { error: buyErr } = await getSB().from('my_nfts').insert({
     owner: currentUser,
     nft_id: nft.id, name: nft.name, collection: nft.collection,
     col_style: nft.colStyle||nft.collection, price: nft.price, rarity: nft.rarity,
@@ -3389,6 +3389,13 @@ function doBuy(){
     likes: nft.likes||0, is_admin_gift: false, custom_image: null,
     bought_at: new Date().toISOString(),
   });
+  if(buyErr){
+    alert('Ошибка сохранения NFT: ' + buyErr.message);
+    // Вернуть ROCK обратно если не сохранилось
+    state.rock += nft.price;
+    updateRockUI();
+    return;
+  }
 
   updateRockUI();
   renderCollection();
@@ -4000,7 +4007,9 @@ async function sbLoadProgress(username){
   state.colVal    = user.col_val   || 0;
   state.upgrades  = user.upgrades  || {};
 
-  const {data: nfts} = await getSB().from('my_nfts').select('*').eq('owner', username);
+  const {data: nfts, error: nftErr} = await getSB().from('my_nfts').select('*').eq('owner', username);
+  if(nftErr) alert('my_nfts load error: ' + nftErr.message);
+  console.log('sbLoadProgress: my_nfts for', username, '=', nfts);
   state.myNFTs = (nfts||[]).map(n=>({
     id: n.nft_id, name: n.name, collection: n.collection,
     colStyle: n.col_style, price: n.price, rarity: n.rarity,
