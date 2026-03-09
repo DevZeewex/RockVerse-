@@ -3938,6 +3938,26 @@ async function doLogin(){
     return;
   }
 
+  // Проверить технический перерыв ДО входа (не для админов)
+  if (!isAdmin(username)) {
+    await refreshSettings();
+    const raw = _settingsCache.maintenance;
+    if (raw) {
+      try {
+        const m = JSON.parse(raw);
+        if (m.enabled) {
+          if(btn){ btn.textContent='Войти'; btn.disabled=false; }
+          const overlay = document.getElementById('maintenanceOverlay');
+          overlay.style.display = 'flex';
+          document.getElementById('maintReasonDisplay').textContent = m.reason || 'Плановое обслуживание сервера';
+          document.getElementById('maintStartDisplay').textContent = m.start || '—:—';
+          document.getElementById('maintEndDisplay').textContent   = m.end   || '—:—';
+          return; // Не пускать на сайт
+        }
+      } catch(e) {}
+    }
+  }
+
   // Загрузить прогресс
   currentUser = username;
   await sbLoadProgress(username);
@@ -3956,12 +3976,6 @@ async function doLogin(){
   renderMarket();
   renderCollection();
   renderUpgrades();
-
-  // Проверить технический перерыв (не для админов)
-  if (!isAdmin(username)) {
-    await refreshSettings();
-    checkMaintenance();
-  }
 
   writeLog('LOGIN', `${username} вошёл в систему`);
   toast(`✓ Добро пожаловать, ${username}!`, 'ok');
