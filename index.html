@@ -1853,6 +1853,33 @@ body::before{content:'';position:fixed;inset:0;opacity:0.022;pointer-events:none
       <div id="maintStatus" style="margin-top:.75rem;font-size:.65rem;color:var(--muted);"></div>
     </div>
 
+    <!-- ИНВЕНТАРЬ ИГРОКА — на всю ширину -->
+    <div style="grid-column:1/-1;background:var(--s);border:1px solid rgba(0,229,255,0.2);padding:1.5rem;position:relative;">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--cyan),#a855f7,var(--cyan));background-size:200%;animation:shimmer 3s linear infinite;"></div>
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:.75rem;">
+        <div style="font-size:.6rem;letter-spacing:3px;text-transform:uppercase;color:var(--cyan);">🎒 Инвентарь игрока</div>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <input class="f-input" id="adminInvUser" placeholder="никнейм" style="width:160px;border-color:rgba(0,229,255,0.2);padding:6px 12px;font-size:.7rem;">
+          <button onclick="adminLoadInventory()" style="padding:7px 18px;background:rgba(0,229,255,.08);
+            border:1px solid rgba(0,229,255,.3);color:var(--cyan);font-family:'IBM Plex Mono',monospace;
+            font-size:.65rem;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .2s;white-space:nowrap;"
+            onmouseover="this.style.background='rgba(0,229,255,.18)'" onmouseout="this.style.background='rgba(0,229,255,.08)'">
+            Загрузить
+          </button>
+        </div>
+      </div>
+
+      <div id="adminInvStatus" style="font-size:.65rem;color:var(--muted);margin-bottom:.75rem;"></div>
+
+      <div id="adminInvGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.75rem;">
+        <div style="text-align:center;padding:2rem;color:var(--muted);font-size:.7rem;border:1px dashed rgba(255,255,255,0.06);grid-column:1/-1;">
+          <div style="font-size:1.5rem;margin-bottom:.5rem;opacity:.3;">🎒</div>
+          Введи никнейм и нажми «Загрузить»
+        </div>
+      </div>
+    </div>
+
     <!-- МОДЕРАЦИЯ NFT — на всю ширину -->
     <div style="grid-column:1/-1;background:var(--s);border:1px solid rgba(255,179,0,0.25);padding:1.5rem;position:relative;">
       <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--r),var(--gold),var(--r));background-size:200%;animation:shimmer 3s linear infinite;"></div>
@@ -3867,6 +3894,91 @@ async function sbTakeRock(username, amount){
   if(current < amount) return {ok:false, msg:`Недостаточно ROCK (у игрока ${current.toLocaleString()})`};
   await getSB().from('users').update({rock: current - amount}).eq('username', username);
   return {ok:true};
+}
+
+async function adminLoadInventory(){
+  const username = document.getElementById('adminInvUser').value.trim();
+  const status   = document.getElementById('adminInvStatus');
+  const grid     = document.getElementById('adminInvGrid');
+  if(!username){ toast('Введи никнейм','err'); return; }
+
+  status.style.color = 'var(--muted)';
+  status.textContent = 'Загружаем...';
+  grid.innerHTML = '';
+
+  const {data, error} = await getSB().from('my_nfts').select('*').eq('owner', username);
+  if(error || !data){
+    status.style.color = '#ff4d6d';
+    status.textContent = '❌ Ошибка загрузки';
+    return;
+  }
+  if(data.length === 0){
+    status.style.color = 'var(--muted)';
+    status.textContent = `У ${username} нет NFT`;
+    grid.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--muted);font-size:.7rem;border:1px dashed rgba(255,255,255,0.06);grid-column:1/-1;">Инвентарь пуст</div>';
+    return;
+  }
+
+  status.style.color = 'var(--cyan)';
+  status.textContent = `${username} · ${data.length} NFT`;
+
+  grid.innerHTML = data.map(nft => `
+    <div style="background:var(--bg);border:1px solid var(--b2);padding:.75rem;position:relative;transition:border .2s;"
+         onmouseover="this.style.borderColor='rgba(0,229,255,.35)'" onmouseout="this.style.borderColor='var(--b2)'">
+      <canvas id="adminInvCanvas_${nft.nft_id.replace(/[^a-z0-9]/gi,'_')}"
+        width="120" height="120"
+        style="width:100%;aspect-ratio:1;display:block;margin-bottom:.5rem;"></canvas>
+      <div style="font-size:.65rem;font-weight:700;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nft.name}</div>
+      <div style="font-size:.55rem;color:var(--muted);margin-bottom:.5rem;">${nft.collection||''} · ${nft.rarity||''}</div>
+      <div style="font-family:'Orbitron',monospace;font-size:.75rem;color:var(--gold);margin-bottom:.6rem;">${(nft.price||0).toLocaleString()} ROCK</div>
+      <button onclick="adminDeleteNFT('${username}','${nft.nft_id}',this)"
+        style="width:100%;padding:5px;background:rgba(255,77,109,.1);border:1px solid rgba(255,77,109,.3);
+        color:#ff4d6d;font-family:'IBM Plex Mono',monospace;font-size:.58rem;font-weight:700;
+        letter-spacing:1px;cursor:pointer;transition:all .2s;"
+        onmouseover="this.style.background='rgba(255,77,109,.25)'" onmouseout="this.style.background='rgba(255,77,109,.1)'">
+        🗑 Удалить
+      </button>
+    </div>
+  `).join('');
+
+  // Рендерим canvas для каждого NFT
+  data.forEach(nft => {
+    const canvasId = 'adminInvCanvas_' + nft.nft_id.replace(/[^a-z0-9]/gi,'_');
+    const canvas = document.getElementById(canvasId);
+    if(!canvas) return;
+    const nftObj = {
+      id: nft.nft_id, name: nft.name, collection: nft.collection,
+      colStyle: nft.col_style||nft.collection, seed: nft.seed||0,
+      customImage: nft.custom_image||null,
+    };
+    try{ drawNFT(canvas, nftObj, 120); }catch(e){}
+  });
+}
+
+async function adminDeleteNFT(username, nftId, btn){
+  if(!confirm(`Удалить NFT «${nftId}» из инвентаря ${username}?`)) return;
+  btn.disabled = true;
+  btn.textContent = '...';
+  const {error} = await getSB().from('my_nfts').delete().eq('owner', username).eq('nft_id', nftId);
+  if(error){
+    btn.disabled = false;
+    btn.textContent = '🗑 Удалить';
+    toast('Ошибка удаления: ' + error.message, 'err');
+    return;
+  }
+  // Убрать карточку из грида
+  const card = btn.closest('div[style*="background:var(--bg)"]');
+  if(card) card.remove();
+  // Обновить счётчик
+  const status = document.getElementById('adminInvStatus');
+  if(status){
+    const grid = document.getElementById('adminInvGrid');
+    const count = grid ? grid.children.length : 0;
+    status.textContent = `${username} · ${count} NFT`;
+  }
+  writeLog('ADMIN', `${currentUser} удалил NFT «${nftId}» из инвентаря ${username}`);
+  renderAdminLogs();
+  toast(`✓ NFT «${nftId}» удалён из инвентаря ${username}`, 'ok');
 }
 
 async function adminTakeRock(){
