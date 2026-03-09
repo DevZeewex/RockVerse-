@@ -2938,6 +2938,11 @@ function renderMarket(){
   updateMarketStats();
 }
 
+async function renderMarketFresh(){
+  await refreshListings();
+  renderMarket();
+}
+
 function updateMarketStats(){
   const listings = getUserListings();
   const available = MARKET_NFTS.filter(n=>(n.sold||0)<(n.maxSupply||999)).length;
@@ -3437,6 +3442,7 @@ function goPage(name, el){
     renderUpgrades();
   }
   if(name==='collection') renderCollection();
+  if(name==='explore')    renderMarketFresh();
   if(name==='mint') document.getElementById('mintBalance').textContent=fmt(Math.floor(state.rock));
   if(name==='boxes') renderBoxes();
   if(name==='bank') renderBankPage();
