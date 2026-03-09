@@ -894,6 +894,7 @@ body::before{content:'';position:fixed;inset:0;opacity:0.022;pointer-events:none
     <button class="t-nav-btn" onclick="goPage('collection',this)">Коллекция</button>
     <button class="t-nav-btn" onclick="goPage('referral',this)" style="color:var(--cyan);border-color:rgba(0,229,255,0.15)">🔗 Рефералы</button>
     <button class="t-nav-btn" id="adminNavBtn" onclick="goPage('admin',this)" style="display:none;color:#a855f7;border-color:rgba(168,85,247,0.3)">⚙ Админ</button>
+    <button class="t-nav-btn" id="testerNavBtn" onclick="goPage('tester',this)" style="display:none;color:#00FF94;border-color:rgba(0,255,148,0.3)">🧪 Тест</button>
   </nav>
 
   <div class="t-right" id="tRight">
@@ -945,6 +946,9 @@ body::before{content:'';position:fixed;inset:0;opacity:0.022;pointer-events:none
   <div class="mob-nav-sep"></div>
   <button class="mob-nav-btn" id="mobBtn-admin" onclick="goPageMob('admin')" style="display:none;color:#a855f7;">
     <span class="mob-icon">⚙</span>Админ панель
+  </button>
+  <button class="mob-nav-btn" id="mobBtn-tester" onclick="goPageMob('tester')" style="display:none;color:#00FF94;">
+    <span class="mob-icon">🧪</span>Тест панель
   </button>
   <div class="mob-nav-sep"></div>
   <!-- ROCK баланс в дровере -->
@@ -2025,6 +2029,33 @@ body::before{content:'';position:fixed;inset:0;opacity:0.022;pointer-events:none
         </div>
       </div>
 
+      <!-- УПРАВЛЕНИЕ ТЕСТЕРАМИ -->
+      <div style="background:var(--s);border:1px solid rgba(0,255,148,.2);padding:1.5rem;position:relative;margin-bottom:1.25rem;">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--g),var(--cyan));"></div>
+        <div style="font-size:.6rem;letter-spacing:3px;text-transform:uppercase;color:var(--g);margin-bottom:1rem;">🧪 Управление тестерами</div>
+        <div style="display:flex;flex-direction:column;gap:.75rem;">
+          <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:flex-end;">
+            <div style="flex:1;min-width:140px;">
+              <div style="font-size:.55rem;color:var(--muted);letter-spacing:1px;margin-bottom:4px;">ТЕСТОВЫЙ АККАУНТ</div>
+              <input class="f-input" id="adminTesterAccInput" placeholder="никнейм тестового акк." style="width:100%;border-color:rgba(0,255,148,.2);">
+            </div>
+            <div style="flex:1;min-width:140px;">
+              <div style="font-size:.55rem;color:var(--muted);letter-spacing:1px;margin-bottom:4px;">ОСНОВНОЙ АККАУНТ (для бейджа)</div>
+              <input class="f-input" id="adminTesterMainInput" placeholder="никнейм основного акк." style="width:100%;border-color:rgba(0,255,148,.2);">
+            </div>
+            <button onclick="adminAssignTester()" style="padding:9px 20px;background:rgba(0,255,148,.12);border:1px solid rgba(0,255,148,.3);
+              color:var(--g);font-family:'IBM Plex Mono',monospace;font-size:.65rem;font-weight:700;letter-spacing:1px;cursor:pointer;white-space:nowrap;transition:all .2s;"
+              onmouseover="this.style.background='rgba(0,255,148,.22)'" onmouseout="this.style.background='rgba(0,255,148,.12)'">
+              ✓ Назначить
+            </button>
+          </div>
+          <div style="font-size:.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:.25rem;">Текущие тестеры</div>
+          <div id="adminTesterList" style="display:flex;flex-direction:column;gap:.5rem;max-height:200px;overflow-y:auto;">
+            <div style="color:var(--muted);font-size:.65rem;text-align:center;padding:1rem;">Загрузка...</div>
+          </div>
+        </div>
+      </div>
+
       <!-- ТАБЛИЦА ПОЛЬЗОВАТЕЛЕЙ С УПРАВЛЕНИЕМ -->
       <div style="font-size:.58rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:.75rem;">Все пользователи</div>
       <div id="banUserTable" style="display:flex;flex-direction:column;gap:1px;max-height:320px;overflow-y:auto;">
@@ -2032,6 +2063,72 @@ body::before{content:'';position:fixed;inset:0;opacity:0.022;pointer-events:none
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- TESTER PAGE -->
+<div class="page" id="page-tester" style="flex-direction:column;overflow:hidden;">
+  <div style="padding:1.5rem 2rem;border-bottom:1px solid var(--b2);flex-shrink:0;display:flex;align-items:center;gap:1rem;">
+    <h1 class="page-title" style="margin:0;">🧪 Тест <span>панель</span></h1>
+    <div style="font-size:.58rem;letter-spacing:2px;text-transform:uppercase;color:var(--g);border:1px solid rgba(0,255,148,.3);padding:3px 10px;">TESTER ACCESS</div>
+  </div>
+  <div style="flex:1;overflow-y:auto;padding:1.5rem 2rem;">
+    <div style="max-width:800px;margin:0 auto;display:flex;flex-direction:column;gap:1.25rem;">
+
+      <!-- ВЫДАТЬ NFT -->
+      <div style="background:var(--s);border:1px solid var(--b2);padding:1.5rem;position:relative;">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--g),var(--cyan));"></div>
+        <div style="font-size:.6rem;letter-spacing:3px;text-transform:uppercase;color:var(--g);margin-bottom:1rem;">⬡ Выдать себе NFT</div>
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:.75rem;">
+          <input class="f-input" id="testerNFTSearch" placeholder="Поиск по названию или коллекции..."
+            style="flex:1;min-width:200px;" oninput="testerSearchNFT(this.value)">
+        </div>
+        <div id="testerNFTGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.75rem;max-height:400px;overflow-y:auto;">
+          <!-- заполняется через JS -->
+        </div>
+      </div>
+
+      <!-- НАЧИСЛИТЬ ROCK -->
+      <div style="background:var(--s);border:1px solid var(--b2);padding:1.5rem;position:relative;">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--gold),var(--r));"></div>
+        <div style="font-size:.6rem;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:1rem;">💰 Начислить себе ROCK</div>
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;">
+          <input class="f-input" id="testerRockAmount" type="number" placeholder="Количество ROCK" style="flex:1;min-width:160px;">
+          <button onclick="testerAddRock()" style="padding:10px 24px;background:var(--gold);color:#1a0500;border:none;
+            font-family:'IBM Plex Mono',monospace;font-size:.72rem;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .2s;"
+            onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">Начислить</button>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem;">
+          <button onclick="document.getElementById('testerRockAmount').value=1000;testerAddRock()" class="quick-btn">+1K</button>
+          <button onclick="document.getElementById('testerRockAmount').value=10000;testerAddRock()" class="quick-btn">+10K</button>
+          <button onclick="document.getElementById('testerRockAmount').value=100000;testerAddRock()" class="quick-btn">+100K</button>
+          <button onclick="document.getElementById('testerRockAmount').value=1000000;testerAddRock()" class="quick-btn">+1M</button>
+          <button onclick="document.getElementById('testerRockAmount').value=999999999;testerAddRock()" class="quick-btn" style="color:var(--r);">+MAX</button>
+        </div>
+      </div>
+
+      <!-- НАЧИСЛИТЬ СПЕЦВАЛЮТЫ -->
+      <div style="background:var(--s);border:1px solid var(--b2);padding:1.5rem;position:relative;">
+        <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#a855f7,var(--cyan));"></div>
+        <div style="font-size:.6rem;letter-spacing:3px;text-transform:uppercase;color:#a855f7;margin-bottom:1rem;">🪙 Начислить спецвалюту</div>
+        <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;">
+          <select class="f-input" id="testerCurrencyType" style="flex:1;min-width:140px;">
+            <option value="yaldok">ЯЛДОК</option>
+          </select>
+          <input class="f-input" id="testerCurrencyAmount" type="number" placeholder="Количество" style="flex:1;min-width:120px;">
+          <button onclick="testerAddCurrency()" style="padding:10px 24px;background:#a855f7;color:white;border:none;
+            font-family:'IBM Plex Mono',monospace;font-size:.72rem;font-weight:700;letter-spacing:1px;cursor:pointer;transition:all .2s;"
+            onmouseover="this.style.opacity='.8'" onmouseout="this.style.opacity='1'">Начислить</button>
+        </div>
+        <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.75rem;">
+          <button onclick="document.getElementById('testerCurrencyAmount').value=100;testerAddCurrency()" class="quick-btn">+100</button>
+          <button onclick="document.getElementById('testerCurrencyAmount').value=1000;testerAddCurrency()" class="quick-btn">+1K</button>
+          <button onclick="document.getElementById('testerCurrencyAmount').value=10000;testerAddCurrency()" class="quick-btn">+10K</button>
+          <button onclick="document.getElementById('testerCurrencyAmount').value=99999;testerAddCurrency()" class="quick-btn" style="color:#a855f7;">+MAX</button>
+        </div>
+      </div>
+
+    </div>
   </div>
 </div>
 
@@ -3671,12 +3768,12 @@ function goPage(name, el){
   if(name==='boxes') renderBoxes();
   if(name==='bank') renderBankPage();
   if(name==='referral') renderReferralPage();
+  if(name==='tester')   renderTesterPage();
   if(name==='catalog') initCatalog();
   if(name==='trade')   initTradePage();
   if(name==='admin'){
     if(!isAdmin(currentUser)){ toast('⛔ Доступ запрещён','err'); goPage('explore',null); return; }
     document.getElementById('adminWhoLabel').textContent = currentUser;
-    // Load supply setting
     const s = getSiteSettings();
     const supply = s.defaultUserSupply||10;
     document.getElementById('adminDefaultSupply').value = supply;
@@ -3686,6 +3783,7 @@ function goPage(name, el){
     renderAdminLogs();
     renderModerationQueue();
     renderBanTable();
+    adminRenderTesters();
   }
 }
 
@@ -4244,7 +4342,7 @@ async function refreshSettings(){
 //  ADMIN — пользователи
 // ─────────────────────────────────────────
 async function sbGetAllUsers(){
-  const {data} = await getSB().from('users').select('username,is_admin,is_banned,ban_reason,is_mint_banned,rock,created_at').order('created_at',{ascending:false});
+  const {data} = await getSB().from('users').select('username,is_admin,is_banned,ban_reason,is_mint_banned,is_tester,tester_main,rock,created_at').order('created_at',{ascending:false});
   return data||[];
 }
 
@@ -4431,9 +4529,17 @@ async function refreshUsersCache(){
       banned: u.is_banned,
       banReason: u.ban_reason,
       is_mint_banned: u.is_mint_banned,
+      is_tester: u.is_tester,
+      tester_main: u.tester_main,
       rock: u.rock,
     };
   });
+}
+
+function isTester(username){
+  if(!username) return false;
+  const u = _usersCache[username];
+  return u?.is_tester || false;
 }
 
 // ─────────────────────────────────────────
@@ -4793,6 +4899,164 @@ async function moderateNFT(nftId, action, idx) {
 // ═══════════════════════════════
 //  ADMIN SYSTEM
 // ═══════════════════════════════
+// ═══════════════════════════════
+//  ТЕСТ ПАНЕЛЬ
+// ═══════════════════════════════
+
+async function renderTesterPage(){
+  if(!currentUser || !isTester(currentUser)) return;
+  testerRenderNFTGrid('');
+}
+
+function testerSearchNFT(query){
+  testerRenderNFTGrid(query.toLowerCase());
+}
+
+function testerRenderNFTGrid(query){
+  const grid = document.getElementById('testerNFTGrid');
+  if(!grid) return;
+  const filtered = query
+    ? MARKET_NFTS.filter(n => n.name.toLowerCase().includes(query) || n.collection.toLowerCase().includes(query))
+    : MARKET_NFTS;
+
+  if(!filtered.length){
+    grid.innerHTML = '<div style="color:var(--muted);font-size:.65rem;text-align:center;padding:1rem;grid-column:1/-1;">Ничего не найдено</div>';
+    return;
+  }
+  grid.innerHTML = filtered.map(nft => `
+    <div style="background:var(--bg);border:1px solid var(--b2);padding:.75rem;cursor:pointer;transition:border .2s;"
+         onmouseover="this.style.borderColor='var(--g)'" onmouseout="this.style.borderColor='var(--b2)'"
+         onclick="testerGiveNFT('${nft.id}')">
+      <canvas id="testerCanvas_${nft.id.replace(/[^a-z0-9]/gi,'_')}" width="120" height="120"
+        style="width:100%;aspect-ratio:1;display:block;margin-bottom:.5rem;pointer-events:none;"></canvas>
+      <div style="font-size:.6rem;font-weight:700;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${nft.name}</div>
+      <div style="font-size:.52rem;color:var(--muted);margin-bottom:4px;">${nft.collection}</div>
+      <div style="font-family:'Orbitron',monospace;font-size:.65rem;color:var(--gold);">${nft.price.toLocaleString()} ROCK</div>
+    </div>
+  `).join('');
+
+  // Рисуем canvas
+  requestAnimationFrame(()=>{
+    filtered.forEach(nft=>{
+      const c = document.getElementById('testerCanvas_' + nft.id.replace(/[^a-z0-9]/gi,'_'));
+      if(c) try{ drawNFT(c, nft, 120); }catch(e){}
+    });
+  });
+}
+
+async function testerGiveNFT(nftId){
+  const nft = MARKET_NFTS.find(n=>n.id===nftId);
+  if(!nft){ toast('NFT не найден','err'); return; }
+  if(!confirm(`Выдать себе «${nft.name}»?`)) return;
+
+  const {error} = await getSB().from('my_nfts').insert({
+    owner: currentUser, nft_id: nft.id, name: nft.name,
+    collection: nft.collection, col_style: nft.colStyle||nft.collection,
+    price: nft.price, rarity: nft.rarity, royalty: nft.royalty,
+    badge: nft.badge||null, seed: nft.seed||0,
+    likes: 0, is_admin_gift: true, custom_image: null,
+    bought_at: new Date().toISOString(),
+  });
+  if(error){ toast('Ошибка: ' + error.message, 'err'); return; }
+
+  const newNFT = {...nft, boughtAt: Date.now(), isAdminGift: true};
+  state.myNFTs.push(newNFT);
+  renderCollection();
+  toast(`✓ «${nft.name}» добавлен в коллекцию`, 'ok');
+  writeLog('TESTER', `${currentUser} выдал себе NFT «${nft.name}»`);
+}
+
+async function testerAddRock(){
+  const amount = parseInt(document.getElementById('testerRockAmount').value)||0;
+  if(amount <= 0){ toast('Введи количество','err'); return; }
+  state.rock += amount;
+  state.totalRock += amount;
+  await sbSaveProgress();
+  updateRockUI();
+  toast(`✓ +${amount.toLocaleString()} ROCK начислено`, 'ok');
+  writeLog('TESTER', `${currentUser} начислил себе ${amount.toLocaleString()} ROCK`);
+}
+
+async function testerAddCurrency(){
+  const type   = document.getElementById('testerCurrencyType').value;
+  const amount = parseInt(document.getElementById('testerCurrencyAmount').value)||0;
+  if(amount <= 0){ toast('Введи количество','err'); return; }
+
+  const colMap = { yaldok: 'yaldok_balance' };
+  const col = colMap[type];
+  if(!col){ toast('Неизвестная валюта','err'); return; }
+
+  const user = await sbGetUser(currentUser);
+  const current = user?.[col]||0;
+  await getSB().from('users').update({ [col]: current + amount }).eq('username', currentUser);
+
+  const names = { yaldok: 'ЯЛДОК' };
+  toast(`✓ +${amount.toLocaleString()} ${names[type]||type} начислено`, 'ok');
+  writeLog('TESTER', `${currentUser} начислил себе ${amount.toLocaleString()} ${type}`);
+}
+
+// ═══════════════════════════════
+//  УПРАВЛЕНИЕ ТЕСТЕРАМИ (АДМИН)
+// ═══════════════════════════════
+
+async function adminAssignTester(){
+  const testerAcc = document.getElementById('adminTesterAccInput').value.trim();
+  const mainAcc   = document.getElementById('adminTesterMainInput').value.trim();
+  if(!testerAcc || !mainAcc){ toast('Введи оба никнейма','err'); return; }
+
+  // Назначить тестовый аккаунт
+  const {error: e1} = await getSB().from('users')
+    .update({ is_tester: true, tester_main: mainAcc })
+    .eq('username', testerAcc);
+  if(e1){ toast('Ошибка: ' + e1.message,'err'); return; }
+
+  // Выдать бейдж основному аккаунту
+  const {error: e2} = await getSB().from('users')
+    .update({ tester_badge: true })
+    .eq('username', mainAcc);
+  // e2 не критично если колонки нет — бейдж добавим позже
+
+  await refreshUsersCache();
+  adminRenderTesters();
+  document.getElementById('adminTesterAccInput').value='';
+  document.getElementById('adminTesterMainInput').value='';
+  toast(`✓ ${testerAcc} назначен тестером`, 'ok');
+  writeLog('ADMIN', `${currentUser} назначил тестером: ${testerAcc} (основной: ${mainAcc})`);
+}
+
+async function adminRevokeTester(username){
+  if(!confirm(`Снять роль тестера с ${username}?`)) return;
+  await getSB().from('users').update({ is_tester: false, tester_main: null }).eq('username', username);
+  await refreshUsersCache();
+  adminRenderTesters();
+  toast(`Роль тестера снята с ${username}`, 'ok');
+  writeLog('ADMIN', `${currentUser} снял роль тестера с ${username}`);
+}
+
+async function adminRenderTesters(){
+  const list = document.getElementById('adminTesterList');
+  if(!list) return;
+  const testers = Object.entries(_usersCache).filter(([,u])=>u.is_tester);
+  if(!testers.length){
+    list.innerHTML = '<div style="color:var(--muted);font-size:.65rem;text-align:center;padding:1rem;">Тестеров пока нет</div>';
+    return;
+  }
+  list.innerHTML = testers.map(([username, u])=>`
+    <div style="background:var(--bg);border:1px solid rgba(0,255,148,.12);padding:.6rem 1rem;
+      display:flex;align-items:center;justify-content:space-between;gap:1rem;">
+      <div>
+        <span style="font-size:.7rem;font-weight:700;color:var(--g);">🧪 ${username}</span>
+        <span style="font-size:.58rem;color:var(--muted);margin-left:.5rem;">→ основной: ${u.tester_main||'?'}</span>
+      </div>
+      <button onclick="adminRevokeTester('${username}')"
+        style="padding:4px 12px;background:rgba(255,77,109,.1);border:1px solid rgba(255,77,109,.3);
+        color:#ff4d6d;font-family:'IBM Plex Mono',monospace;font-size:.58rem;cursor:pointer;white-space:nowrap;">
+        Снять
+      </button>
+    </div>
+  `).join('');
+}
+
 const ADMIN_DB = {
   'Zeewex1': 'wazanoIPS6',
   'ronaldo': 'Der12iop',
@@ -4800,9 +5064,17 @@ const ADMIN_DB = {
 
 function updateAdminNav() {
   const btn = document.getElementById('adminNavBtn');
-  if (btn) btn.style.display = isAdmin(currentUser) ? '' : 'none';
   const mobBtn = document.getElementById('mobBtn-admin');
-  if (mobBtn) mobBtn.style.display = isAdmin(currentUser) ? '' : 'none';
+  const testerBtn = document.getElementById('testerNavBtn');
+  const mobTesterBtn = document.getElementById('mobBtn-tester');
+
+  const admin  = isAdmin(currentUser);
+  const tester = isTester(currentUser);
+
+  if(btn)         btn.style.display        = admin  ? '' : 'none';
+  if(mobBtn)      mobBtn.style.display     = admin  ? '' : 'none';
+  if(testerBtn)   testerBtn.style.display  = (tester && !admin) ? '' : 'none';
+  if(mobTesterBtn)mobTesterBtn.style.display = (tester && !admin) ? '' : 'none';
 }
 
 function writeLog(type, msg){ sbWriteLog(type, msg); }
