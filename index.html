@@ -2063,7 +2063,7 @@ body::before{content:'';position:fixed;inset:0;opacity:0.022;pointer-events:none
       и появится на маркетплейсе. Пока никто не купил — ты можешь снять его с продажи.
     </div>
 
-    <button class="big-btn primary" onclick="doSellNFT()" style="background:linear-gradient(135deg,var(--g),#00c974);color:#001a0a;">
+    <button id="smSellBtn" class="big-btn primary" onclick="doSellNFT()" style="background:linear-gradient(135deg,var(--g),#00c974);color:#001a0a;">
       💸 Выставить на продажу
     </button>
   </div>
@@ -3598,13 +3598,15 @@ async function sbGetListings(){
 
 async function sbAddListing(nft, price){
   const lid = 'LST'+Date.now();
-  await getSB().from('listings').insert({
+  const {error} = await getSB().from('listings').insert({
     listing_id: lid, seller: currentUser,
     nft_id: nft.id, name: nft.name, collection: nft.collection,
-    col_style: nft.colStyle, price, rarity: nft.rarity,
-    royalty: nft.royalty, seed: nft.seed,
+    col_style: nft.colStyle||null, price, rarity: nft.rarity,
+    royalty: nft.royalty||0, seed: nft.seed||0,
     custom_image: nft.customImage||null,
+    is_active: true,
   });
+  if(error){ console.error('sbAddListing error:', error); return null; }
   return lid;
 }
 
@@ -4448,19 +4450,36 @@ async function doSellNFT(){
   const price = parseInt(document.getElementById('smSellPrice').value)||0;
   if(price < 1){ toast('Введи цену больше 0','err'); return; }
 
-  state.myNFTs.splice(index, 1);
-  state.colVal = Math.max(0, state.colVal - nft.price);
+  const btn = document.getElementById('smSellBtn');
+  if(btn){ btn.disabled=true; btn.textContent='Выставляем...'; }
 
-  const listingId = await sbAddListing(nft, price);
-  await refreshListings();
+  try {
+    // 1. Добавить в листинги Supabase
+    const listingId = await sbAddListing(nft, price);
+    if(!listingId){ toast('Ошибка при выставлении','err'); return; }
 
-  closeSellModal();
-  updateRockUI();
-  renderCollection();
-  renderMarket();
-  sbSaveProgress();
-  writeLog('SELL', `${currentUser} выставил NFT «${nft.name}» за ${price.toLocaleString()} ROCK`);
-  toast(`✓ «${nft.name}» выставлен за ${price.toLocaleString()} ROCK`, 'ok');
+    // 2. Удалить NFT из таблицы my_nfts в Supabase
+    await getSB().from('my_nfts').delete().eq('owner', currentUser).eq('nft_id', nft.id);
+
+    // 3. Удалить из локального состояния
+    state.myNFTs.splice(index, 1);
+    state.colVal = Math.max(0, state.colVal - nft.price);
+
+    // 4. Обновить всё
+    await refreshListings();
+    closeSellModal();
+    updateRockUI();
+    renderCollection();
+    renderMarket();
+    await sbSaveProgress();
+    writeLog('SELL', `${currentUser} выставил NFT «${nft.name}» за ${price.toLocaleString()} ROCK`);
+    toast(`✓ «${nft.name}» выставлен за ${price.toLocaleString()} ROCK`, 'ok');
+  } catch(e) {
+    console.error('doSellNFT error:', e);
+    toast('Ошибка при выставлении NFT', 'err');
+  } finally {
+    if(btn){ btn.disabled=false; btn.textContent='Выставить'; }
+  }
 }
 
 // Снять свой лот с продажи
@@ -4470,6 +4489,16 @@ async function cancelListing(listingId, ev){
   if(!listing){ toast('Лот не найден','err'); return; }
 
   await sbRemoveListing(listingId);
+
+  // Вернуть NFT в my_nfts
+  await getSB().from('my_nfts').insert({
+    owner: currentUser, nft_id: listing.id, name: listing.name,
+    collection: listing.collection, col_style: listing.colStyle||null,
+    price: listing.price, rarity: listing.rarity, royalty: listing.royalty,
+    badge: listing.badge||null, seed: listing.seed, likes: 0,
+    custom_image: listing.customImage||null,
+  });
+
   state.myNFTs.push({...listing, boughtAt:Date.now(), listingId:undefined, seller:undefined});
   state.colVal += listing.price;
   await refreshListings();
