@@ -81,6 +81,8 @@ body::before{content:'';position:fixed;inset:0;opacity:0.022;pointer-events:none
   transition:all .2s;animation:pulse-btn 3s ease-in-out infinite;
 }
 @keyframes pulse-btn{0%,100%{box-shadow:0 0 0 0 rgba(255,61,0,.4)}50%{box-shadow:0 0 16px 4px rgba(255,61,0,.2)}}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes pulse{0%,100%{opacity:.5;transform:translate(-50%,-50%) scale(.9)}50%{opacity:1;transform:translate(-50%,-50%) scale(1.05)}}
 .clicker-nav-btn:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(255,61,0,.4);}
 
 /* ══ PAGES ══ */
@@ -402,6 +404,9 @@ body::before{content:'';position:fixed;inset:0;opacity:0.022;pointer-events:none
   .modal-img{max-height:200px;}
   .modal-title{font-size:1rem;}
   .mp-price{font-size:1.3rem;}
+  /* Режим "Рынок игроков" — скрыть первую панель, показать только вторую */
+  #page-explore[data-playermarket="1"] .mp-panel-1{display:none !important;}
+  #page-explore[data-playermarket="1"] .mp-panel-2{width:100% !important;}
 }
 
 /* TOAST */
@@ -885,6 +890,9 @@ body::before{content:'';position:fixed;inset:0;opacity:0.022;pointer-events:none
   <button class="mob-nav-btn" id="mobBtn-catalog" onclick="goPageMob('catalog')">
     <span class="mob-icon">📚</span>Каталог
   </button>
+  <button class="mob-nav-btn" id="mobBtn-p2pmarket" onclick="showPlayerMarket()" style="color:#00E5FF;">
+    <span class="mob-icon">🛒</span>Рынок игроков
+  </button>
   <button class="mob-nav-btn" id="mobBtn-trade" onclick="goPageMob('trade')" style="color:#00FF94;">
     <span class="mob-icon">🔄</span>Обмен
   </button>
@@ -974,7 +982,7 @@ body::before{content:'';position:fixed;inset:0;opacity:0.022;pointer-events:none
   <div style="flex:1;overflow:hidden;display:grid;grid-template-columns:1fr 1fr;min-height:0;">
 
     <!-- ══ ОКНО 1: Официальные NFT ══ -->
-    <div style="display:flex;flex-direction:column;border-right:1px solid var(--b2);overflow:hidden;">
+    <div class="mp-panel-1" style="display:flex;flex-direction:column;border-right:1px solid var(--b2);overflow:hidden;">
 
       <!-- Заголовок панели -->
       <div style="flex-shrink:0;background:var(--s);border-bottom:1px solid var(--b2);padding:.75rem 1.25rem;
@@ -1006,7 +1014,7 @@ body::before{content:'';position:fixed;inset:0;opacity:0.022;pointer-events:none
     </div>
 
     <!-- ══ ОКНО 2: Лоты от игроков ══ -->
-    <div style="display:flex;flex-direction:column;overflow:hidden;">
+    <div class="mp-panel-2" style="display:flex;flex-direction:column;overflow:hidden;">
 
       <!-- Заголовок панели -->
       <div style="flex-shrink:0;background:var(--s);border-bottom:1px solid var(--b2);padding:.75rem 1.25rem;
@@ -1781,6 +1789,41 @@ body::before{content:'';position:fixed;inset:0;opacity:0.022;pointer-events:none
       </div>
     </div>
 
+    <!-- ТЕХНИЧЕСКИЙ ПЕРЕРЫВ -->
+    <div style="grid-column:1/-1;background:var(--s);border:1px solid rgba(255,77,109,0.3);padding:1.5rem;position:relative;">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,#ff4d6d,#ff8c00,#ff4d6d);background-size:200%;animation:shimmer 3s linear infinite;"></div>
+      <div style="font-size:.6rem;letter-spacing:3px;text-transform:uppercase;color:#ff4d6d;margin-bottom:1.25rem;">🔧 Технический перерыв</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+        <div class="form-group" style="margin:0;">
+          <label class="f-label">Начало (от)</label>
+          <input class="f-input" id="maintStart" type="time" style="border-color:rgba(255,77,109,0.25);">
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="f-label">Конец (до)</label>
+          <input class="f-input" id="maintEnd" type="time" style="border-color:rgba(255,77,109,0.25);">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="f-label">Причина (опционально)</label>
+        <input class="f-input" id="maintReason" placeholder="Плановое обслуживание сервера..." style="border-color:rgba(255,77,109,0.25);">
+      </div>
+      <div style="display:flex;gap:.75rem;flex-wrap:wrap;">
+        <button onclick="adminSetMaintenance(true)" style="flex:1;padding:11px;background:rgba(255,77,109,0.15);
+          border:1px solid rgba(255,77,109,0.4);color:#ff4d6d;font-family:'IBM Plex Mono',monospace;
+          font-size:.75rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;min-width:140px;"
+          onmouseover="this.style.background='rgba(255,77,109,0.25)'" onmouseout="this.style.background='rgba(255,77,109,0.15)'">
+          🔧 Включить перерыв
+        </button>
+        <button onclick="adminSetMaintenance(false)" style="flex:1;padding:11px;background:rgba(0,255,148,.08);
+          border:1px solid rgba(0,255,148,.3);color:var(--g);font-family:'IBM Plex Mono',monospace;
+          font-size:.75rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;min-width:140px;"
+          onmouseover="this.style.background='rgba(0,255,148,.18)'" onmouseout="this.style.background='rgba(0,255,148,.08)'">
+          ✓ Отключить перерыв
+        </button>
+      </div>
+      <div id="maintStatus" style="margin-top:.75rem;font-size:.65rem;color:var(--muted);"></div>
+    </div>
+
     <!-- МОДЕРАЦИЯ NFT — на всю ширину -->
     <div style="grid-column:1/-1;background:var(--s);border:1px solid rgba(255,179,0,0.25);padding:1.5rem;position:relative;">
       <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--r),var(--gold),var(--r));background-size:200%;animation:shimmer 3s linear infinite;"></div>
@@ -1901,6 +1944,7 @@ body::before{content:'';position:fixed;inset:0;opacity:0.022;pointer-events:none
     <div class="modal-title" id="mTitle">NFT Name</div>
     <div class="modal-sub" id="mSub">Collection · Creator</div>
     <div class="modal-img"><canvas id="mCanvas" width="400" height="400"></canvas></div>
+    <button class="big-btn primary" id="mBuyBtn" onclick="doBuy()" style="width:100%;margin-bottom:1rem;">Купить</button>
     <div class="modal-detail-grid">
       <div class="md-item"><div class="md-label">Создатель</div><div class="md-val" id="mCreator">—</div></div>
       <div class="md-item"><div class="md-label">Редкость</div><div class="md-val" id="mRarity">—</div></div>
@@ -1911,7 +1955,80 @@ body::before{content:'';position:fixed;inset:0;opacity:0.022;pointer-events:none
       <div><div class="mp-label">Цена</div><div class="mp-price" id="mPrice">—</div><div style="font-size:.6rem;color:var(--r)">ROCK</div></div>
     </div>
     <div id="mSupply" style="margin-bottom:1rem;padding:.75rem 1rem;background:var(--bg);border:1px solid var(--b2);"></div>
-    <button class="big-btn primary" id="mBuyBtn" onclick="doBuy()">Купить</button>
+  </div>
+</div>
+
+<!-- MAINTENANCE OVERLAY -->
+<div id="maintenanceOverlay" style="display:none;position:fixed;inset:0;z-index:9999;
+  background:linear-gradient(135deg,#060609 0%,#0d0010 50%,#060609 100%);
+  flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;">
+
+  <!-- Анимированный фон -->
+  <div style="position:absolute;inset:0;overflow:hidden;pointer-events:none;">
+    <div style="position:absolute;width:600px;height:600px;border-radius:50%;
+      background:radial-gradient(circle,rgba(255,77,109,0.08) 0%,transparent 70%);
+      top:50%;left:50%;transform:translate(-50%,-50%);animation:pulse 3s ease-in-out infinite;"></div>
+    <div style="position:absolute;width:300px;height:300px;border-radius:50%;
+      background:radial-gradient(circle,rgba(168,85,247,0.06) 0%,transparent 70%);
+      top:20%;left:10%;animation:pulse 4s ease-in-out infinite 1s;"></div>
+    <div style="position:absolute;width:200px;height:200px;border-radius:50%;
+      background:radial-gradient(circle,rgba(255,140,0,0.06) 0%,transparent 70%);
+      bottom:20%;right:10%;animation:pulse 5s ease-in-out infinite 2s;"></div>
+  </div>
+
+  <div style="position:relative;z-index:1;max-width:480px;width:100%;">
+
+    <!-- Иконка -->
+    <div style="font-size:4rem;margin-bottom:1.5rem;animation:spin 8s linear infinite;display:inline-block;">⚙</div>
+
+    <!-- Заголовок -->
+    <div style="font-family:'Unbounded',sans-serif;font-size:1.6rem;font-weight:900;
+      letter-spacing:-1px;margin-bottom:.5rem;
+      background:linear-gradient(90deg,#ff4d6d,#ff8c00);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;">
+      ТЕХНИЧЕСКИЙ ПЕРЕРЫВ
+    </div>
+
+    <div style="width:60px;height:2px;background:linear-gradient(90deg,#ff4d6d,#ff8c00);
+      margin:0 auto 1.5rem;"></div>
+
+    <!-- Причина -->
+    <div id="maintReasonDisplay" style="font-size:.85rem;color:rgba(255,255,255,0.7);
+      margin-bottom:2rem;line-height:1.6;min-height:1.5rem;"></div>
+
+    <!-- Время -->
+    <div style="background:rgba(255,77,109,0.08);border:1px solid rgba(255,77,109,0.2);
+      padding:1.25rem 2rem;margin-bottom:2rem;">
+      <div style="font-size:.55rem;letter-spacing:3px;text-transform:uppercase;
+        color:rgba(255,255,255,0.4);margin-bottom:.75rem;">Время проведения</div>
+      <div style="display:flex;align-items:center;justify-content:center;gap:1.5rem;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:.55rem;color:#ff4d6d;letter-spacing:2px;margin-bottom:4px;">НАЧАЛО</div>
+          <div id="maintStartDisplay" style="font-family:'Orbitron',monospace;font-size:1.4rem;
+            font-weight:700;color:white;">—:—</div>
+        </div>
+        <div style="font-size:1.5rem;color:rgba(255,255,255,0.3);">→</div>
+        <div>
+          <div style="font-size:.55rem;color:var(--g);letter-spacing:2px;margin-bottom:4px;">КОНЕЦ</div>
+          <div id="maintEndDisplay" style="font-family:'Orbitron',monospace;font-size:1.4rem;
+            font-weight:700;color:white;">—:—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Telegram -->
+    <div style="background:rgba(0,136,204,0.08);border:1px solid rgba(0,136,204,0.2);
+      padding:1rem 1.5rem;display:flex;align-items:center;justify-content:center;gap:.75rem;">
+      <span style="font-size:1.3rem;">✈</span>
+      <div style="text-align:left;">
+        <div style="font-size:.6rem;color:rgba(255,255,255,0.5);letter-spacing:1px;margin-bottom:2px;">СЛЕДИ ЗА НОВОСТЯМИ</div>
+        <div style="font-size:.9rem;font-weight:700;color:#29b6f6;font-family:'IBM Plex Mono',monospace;">Telegram: @rockverse</div>
+      </div>
+    </div>
+
+    <!-- Логотип -->
+    <div style="margin-top:2rem;font-family:'Unbounded',sans-serif;font-size:.7rem;
+      color:rgba(255,255,255,0.2);letter-spacing:4px;">ROCKVERSE</div>
   </div>
 </div>
 
@@ -3835,6 +3952,9 @@ async function doLogin(){
   renderCollection();
   renderUpgrades();
 
+  // Проверить технический перерыв (не для админов)
+  if (!isAdmin(username)) checkMaintenance();
+
   writeLog('LOGIN', `${username} вошёл в систему`);
   toast(`✓ Добро пожаловать, ${username}!`, 'ok');
 
@@ -4405,8 +4525,52 @@ function openUserListingModal(nft, ev){
 }
 
 // ═══════════════════════════════
-//  SITE SETTINGS
+//  MAINTENANCE MODE
 // ═══════════════════════════════
+
+async function adminSetMaintenance(enabled) {
+  const start  = document.getElementById('maintStart').value;
+  const end    = document.getElementById('maintEnd').value;
+  const reason = document.getElementById('maintReason').value.trim();
+
+  if (enabled && (!start || !end)) {
+    toast('Укажи время начала и конца', 'err'); return;
+  }
+
+  const data = { enabled, start: start||'', end: end||'', reason: reason||'Плановое обслуживание сервера' };
+  await sbSetSetting('maintenance', JSON.stringify(data));
+  _settingsCache.maintenance = JSON.stringify(data);
+
+  const statusEl = document.getElementById('maintStatus');
+  if (enabled) {
+    statusEl.innerHTML = `<span style="color:#ff4d6d;">● Технический перерыв ВКЛЮЧЁН · ${start} → ${end}</span>`;
+    writeLog('ADMIN', `${currentUser} включил технический перерыв ${start}–${end}`);
+    toast(`🔧 Технический перерыв включён`, 'info');
+  } else {
+    statusEl.innerHTML = `<span style="color:var(--g);">✓ Технический перерыв отключён</span>`;
+    writeLog('ADMIN', `${currentUser} отключил технический перерыв`);
+    toast('✓ Технический перерыв отключён', 'ok');
+    document.getElementById('maintenanceOverlay').style.display = 'none';
+  }
+  renderAdminLogs();
+}
+
+function checkMaintenance() {
+  try {
+    const raw = _settingsCache.maintenance;
+    if (!raw) return false;
+    const m = JSON.parse(raw);
+    if (!m.enabled) return false;
+
+    // Показать оверлей
+    const overlay = document.getElementById('maintenanceOverlay');
+    overlay.style.display = 'flex';
+    document.getElementById('maintReasonDisplay').textContent = m.reason || 'Плановое обслуживание сервера';
+    document.getElementById('maintStartDisplay').textContent = m.start || '—:—';
+    document.getElementById('maintEndDisplay').textContent   = m.end   || '—:—';
+    return true;
+  } catch(e) { return false; }
+}
 function adminSaveSettings(){
   const supply = parseInt(document.getElementById('adminDefaultSupply').value)||10;
   const s = getSiteSettings();
@@ -5649,6 +5813,9 @@ function closeMobileNav(){
 
 function goPageMob(name){
   closeMobileNav();
+  // Сбросить мобильный режим рынка игроков
+  const exploreEl = document.getElementById('page-explore');
+  if(exploreEl) exploreEl.removeAttribute('data-playermarket');
   // Find matching desktop nav btn or pass null
   const desktopBtn = document.querySelector(`.t-nav .t-nav-btn[onclick*="'${name}'"]`);
   goPage(name, desktopBtn);
@@ -5660,6 +5827,23 @@ function goPageMob(name){
   // Sync mobile nav
   document.querySelectorAll('.mob-nav-btn').forEach(b=>{
     b.classList.toggle('active', b.id===`mobBtn-${name}`);
+  });
+}
+
+function showPlayerMarket(){
+  closeMobileNav();
+  goPage('explore', null);
+  // Пометить страницу как "режим рынка игроков"
+  const exploreEl = document.getElementById('page-explore');
+  if(exploreEl) exploreEl.setAttribute('data-playermarket','1');
+  // Прокрутить к панели игроков
+  setTimeout(()=>{
+    const el = document.getElementById('mpPanel2Scroll');
+    if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+  }, 300);
+  // Подсветить кнопку
+  document.querySelectorAll('.mob-nav-btn').forEach(b=>{
+    b.classList.toggle('active', b.id==='mobBtn-p2pmarket');
   });
 }
 
