@@ -4292,12 +4292,13 @@ async function adminLoadInventory(){
   grid.innerHTML = '';
 
   const {data, error} = await getSB().from('my_nfts').select('*').eq('owner', username);
-  if(error || !data){
+  if(error){
     status.style.color = '#ff4d6d';
-    status.textContent = '❌ Ошибка загрузки';
+    status.textContent = '❌ Ошибка: ' + error.message;
+    alert('adminLoadInventory error: ' + error.message);
     return;
   }
-  if(data.length === 0){
+  if(!data || data.length === 0){
     status.style.color = 'var(--muted)';
     status.textContent = `У ${username} нет NFT`;
     grid.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--muted);font-size:.7rem;border:1px dashed rgba(255,255,255,0.06);grid-column:1/-1;">Инвентарь пуст</div>';
