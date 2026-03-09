@@ -1803,7 +1803,19 @@ body::before{content:'';position:fixed;inset:0;opacity:0.022;pointer-events:none
       <div id="adminTakeStatus" style="margin-top:.75rem;font-size:.65rem;color:var(--muted);"></div>
     </div>
 
-    <!-- ИНВЕНТАРЬ ИГРОКА — на всю ширину -->
+    <!-- УПРАВЛЕНИЕ ЗАПАСАМИ NFT -->
+    <div style="background:var(--s);border:1px solid rgba(0,255,148,0.2);padding:1.5rem;position:relative;">
+      <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--g),var(--cyan));"></div>
+      <div style="font-size:.6rem;letter-spacing:3px;text-transform:uppercase;color:var(--g);margin-bottom:1rem;">📦 Запасы NFT</div>
+      <div style="font-size:.65rem;color:var(--muted);margin-bottom:1rem;">Пополнить запасы всех официальных NFT до максимума (сбросить счётчики sold).</div>
+      <button onclick="adminRestockAll()" style="width:100%;padding:11px;background:rgba(0,255,148,.08);
+        border:1px solid rgba(0,255,148,.3);color:var(--g);font-family:'IBM Plex Mono',monospace;
+        font-size:.75rem;font-weight:700;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;"
+        onmouseover="this.style.background='rgba(0,255,148,.2)'" onmouseout="this.style.background='rgba(0,255,148,.08)'">
+        🔄 Пополнить все запасы
+      </button>
+      <div id="adminRestockStatus" style="margin-top:.75rem;font-size:.65rem;color:var(--muted);"></div>
+    </div>
     <div style="grid-column:1/-1;background:var(--s);border:1px solid rgba(0,229,255,0.2);padding:1.5rem;position:relative;">
       <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--cyan),#a855f7,var(--cyan));background-size:200%;animation:shimmer 3s linear infinite;"></div>
 
@@ -2357,8 +2369,48 @@ const MARKET_NFTS = [
 ];
 
 // ═══════════════════════════════
-//  UPGRADES
+//  GLOBAL NFT SUPPLY (остатки)
 // ═══════════════════════════════
+// Кэш остатков — { nft_id: sold_count }
+let _supplyCache = {};
+
+// Сбросить sold у всех NFT до 0 (пополнить запасы)
+async function sbResetAllSupply(){
+  const rows = MARKET_NFTS.map(n => ({ nft_id: n.id, sold: 0, max_supply: n.maxSupply }));
+  // upsert — создаст если нет, обновит если есть
+  await getSB().from('nft_supply').upsert(rows, { onConflict: 'nft_id' });
+  MARKET_NFTS.forEach(n => { _supplyCache[n.id] = 0; });
+}
+
+async function sbRefreshSupply(){
+  const { data } = await getSB().from('nft_supply').select('nft_id, sold');
+  if(!data || !data.length){
+    // Таблица пустая — инициализируем
+    await sbResetAllSupply();
+    return;
+  }
+  _supplyCache = {};
+  data.forEach(r => { _supplyCache[r.nft_id] = r.sold || 0; });
+}
+
+async function sbIncrementSold(nftId){
+  const current = _supplyCache[nftId] || 0;
+  _supplyCache[nftId] = current + 1;
+  await getSB().from('nft_supply').upsert({ nft_id: nftId, sold: current + 1 }, { onConflict: 'nft_id' });
+}
+
+function getRemaining(nftId){
+  const nft = MARKET_NFTS.find(n => n.id === nftId);
+  if(!nft) return 0;
+  const sold = _supplyCache[nftId] || 0;
+  return Math.max(0, nft.maxSupply - sold);
+}
+
+function isSoldOut(nftId){
+  return getRemaining(nftId) <= 0;
+}
+
+
 const UPGRADES = [
   {id:'pick',    icon:'⛏',name:'Стальная кирка',  desc:'+2 ROCK за клик', cost:50,   effect:()=>{state.perClick+=2;},    req:0},
   {id:'auto1',   icon:'⚙',name:'Авто-майнер I',   desc:'+1 ROCK/сек',    cost:150,  effect:()=>{state.cps+=1;},          req:0},
@@ -3050,7 +3102,7 @@ function renderPanel1(){
   }
 
   list.forEach((nft,i)=>{
-    const sold=nft.sold||0, maxS=nft.maxSupply||null;
+    const sold=_supplyCache[nft.id]||0, maxS=nft.maxSupply||null;
     const isSoldOut = maxS!==null && sold>=maxS;
     const remaining = maxS!==null ? maxS-sold : null;
     const card=document.createElement('div');
@@ -3183,7 +3235,7 @@ function openModal(idx, ev){
   document.getElementById('mPrice').textContent=nft.price.toLocaleString();
 
   // Supply info
-  const sold=nft.sold||0, maxS=nft.maxSupply||null;
+  const sold=_supplyCache[nft.id]||0, maxS=nft.maxSupply||null;
   const supplyEl = document.getElementById('mSupply');
   if(supplyEl){
     if(maxS!==null){
@@ -3218,16 +3270,28 @@ function doBuy(){
   if(!currentModal)return;
   const nft=currentModal;
   const maxS=nft.maxSupply||null;
-  const sold=nft.sold||0;
+  const sold=_supplyCache[nft.id]||0;
   if(maxS!==null && sold>=maxS){ toast('SOLD OUT!','err'); closeModal(); return; }
   if(state.rock<nft.price){ toast('Недостаточно ROCK! Иди в кликер →','err'); closeModal(); return; }
 
   state.rock-=nft.price;
-  state.myNFTs.push({...nft, boughtAt:Date.now()});
   state.colVal+=nft.price;
 
-  // Увеличить счётчик sold
-  if(maxS!==null) nft.sold=(nft.sold||0)+1;
+  const boughtNFT = {...nft, boughtAt:Date.now()};
+  state.myNFTs.push(boughtNFT);
+
+  // Увеличить глобальный счётчик sold в Supabase
+  sbIncrementSold(nft.id);
+
+  // Сохранить NFT в my_nfts
+  getSB().from('my_nfts').insert({
+    owner: currentUser,
+    nft_id: nft.id, name: nft.name, collection: nft.collection,
+    col_style: nft.colStyle||nft.collection, price: nft.price, rarity: nft.rarity,
+    royalty: nft.royalty, badge: nft.badge||null, seed: nft.seed||0,
+    likes: nft.likes||0, is_admin_gift: false, custom_image: null,
+    bought_at: new Date().toISOString(),
+  });
 
   updateRockUI();
   renderCollection();
@@ -3235,7 +3299,7 @@ function doBuy(){
   closeModal();
   toast(`✓ "${nft.name}" куплен за ${nft.price.toLocaleString()} ROCK!`,'ok');
   writeLog('BUY', `${currentUser} купил NFT «${nft.name}» за ${nft.price.toLocaleString()} ROCK`);
-  saveProgress();
+  sbSaveProgress();
 }
 
 // ═══════════════════════════════
@@ -3592,6 +3656,7 @@ async function sbCreateUser(username, password){
 
 async function sbSaveProgress(){
   if(!currentUser) return;
+  // Сохраняем только статистику игрока — NFT управляются точечно (insert/delete по событиям)
   await getSB().from('users').update({
     rock: state.rock,
     total_rock: state.totalRock,
@@ -3601,21 +3666,6 @@ async function sbSaveProgress(){
     col_val: state.colVal,
     upgrades: state.upgrades,
   }).eq('username', currentUser);
-
-  // Сохранить NFT — удалить старые и вставить новые
-  await getSB().from('my_nfts').delete().eq('owner', currentUser);
-  if(state.myNFTs.length){
-    const rows = state.myNFTs.map(n=>({
-      owner: currentUser,
-      nft_id: n.id, name: n.name, collection: n.collection,
-      col_style: n.colStyle, price: n.price, rarity: n.rarity,
-      royalty: n.royalty, badge: n.badge, seed: n.seed,
-      likes: n.likes||0, is_admin_gift: !!n.isAdminGift,
-      custom_image: n.customImage||null,
-      bought_at: n.boughtAt ? new Date(n.boughtAt).toISOString() : new Date().toISOString(),
-    }));
-    await getSB().from('my_nfts').insert(rows);
-  }
 }
 
 async function sbLoadProgress(username){
@@ -3896,6 +3946,20 @@ async function sbTakeRock(username, amount){
   return {ok:true};
 }
 
+async function adminRestockAll(){
+  const status = document.getElementById('adminRestockStatus');
+  status.style.color = 'var(--muted)';
+  status.textContent = 'Пополняем запасы...';
+  await sbResetAllSupply();
+  await sbRefreshSupply();
+  renderMarket();
+  status.style.color = 'var(--g)';
+  status.textContent = `✓ Запасы всех ${MARKET_NFTS.length} NFT пополнены!`;
+  toast('✓ Все запасы NFT пополнены', 'ok');
+  writeLog('ADMIN', `${currentUser} пополнил запасы всех NFT`);
+  renderAdminLogs();
+}
+
 async function adminLoadInventory(){
   const username = document.getElementById('adminInvUser').value.trim();
   const status   = document.getElementById('adminInvStatus');
@@ -4156,6 +4220,7 @@ async function doLogin(){
   // Загрузить прогресс
   currentUser = username;
   await sbLoadProgress(username);
+  await sbRefreshSupply();
   await refreshAll();
 
   // Скрыть экран авторизации
@@ -5505,7 +5570,7 @@ function renderCatalogAllNFTs(list, container){
 function createCatNFTEl(nft, cvId, view){
   const el = document.createElement('div');
   const rc = rarityColor(nft.rarity);
-  const sold=nft.sold||0, maxS=nft.maxSupply||null;
+  const sold=_supplyCache[nft.id]||0, maxS=nft.maxSupply||null;
   const isSoldOut = maxS!==null && sold>=maxS;
   const remaining = maxS!==null ? maxS-sold : null;
 
