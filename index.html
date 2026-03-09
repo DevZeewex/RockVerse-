@@ -3493,7 +3493,8 @@ function buildTicker(){
 function toast(msg,type='ok'){
   const t=document.getElementById('toast');
   t.textContent=msg;t.className='toast show '+type;
-  clearTimeout(t._t);t._t=setTimeout(()=>t.className='toast',3200);
+  const duration = type==='err' ? 7000 : 3200;
+  clearTimeout(t._t);t._t=setTimeout(()=>t.className='toast',duration);
 }
 
 // ═══════════════════════════════
@@ -3613,7 +3614,7 @@ async function sbAddListing(nft, price){
     is_active: true,
     listed_at: new Date().toISOString(),
   });
-  if(error){ console.error('sbAddListing error:', JSON.stringify(error)); toast('DB: '+error.message,'err'); return null; }
+  if(error){ console.error('sbAddListing error:', JSON.stringify(error)); toast('Ошибка: '+(error.message||error.code||JSON.stringify(error)),'err'); return null; }
   return lid;
 }
 
