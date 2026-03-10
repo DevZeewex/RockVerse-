@@ -4229,11 +4229,11 @@ const MINER_NFTS = [
 ];
 
 const MINER_BOX_CHANCES = [
-  {id:'#M001', chance:3},
-  {id:'#M002', chance:10},
-  {id:'#M003', chance:22},
-  {id:'#M004', chance:30},
-  {id:'#M005', chance:35},
+  {id:'#M001', chance:1},
+  {id:'#M002', chance:4},
+  {id:'#M003', chance:15},
+  {id:'#M004', chance:35},
+  {id:'#M005', chance:45},
 ];
 
 function rollMinerBox(){
@@ -6295,13 +6295,27 @@ function openBox(colName, ev){
   const colNFTs = MARKET_NFTS.filter(n=>n.collection===colName && (n.sold||0)<(n.maxSupply||999));
   if(colNFTs.length < 1){ toast('Все NFT этой коллекции распроданы!','err'); return; }
 
+  // Взвешенный рандом — чем дешевле NFT, тем выше шанс
+  function weightedRoll(pool){
+    const maxPrice = Math.max(...pool.map(n=>n.price));
+    const weighted = pool.map(n=>({ nft:n, weight: maxPrice - n.price + 1 }));
+    const total = weighted.reduce((s,w)=>s+w.weight,0);
+    let rand = Math.random()*total;
+    for(const w of weighted){
+      rand -= w.weight;
+      if(rand <= 0) return w.nft;
+    }
+    return weighted[weighted.length-1].nft;
+  }
+
   // Определить дроп заранее
   const dropped = [];
   const pool = [...colNFTs];
   for(let i=0;i<2;i++){
     if(!pool.length) break;
-    const idx = Math.floor(Math.random()*pool.length);
-    dropped.push(pool.splice(idx,1)[0]);
+    const nft = weightedRoll(pool);
+    dropped.push(nft);
+    pool.splice(pool.indexOf(nft),1);
   }
 
   // Сохранить контекст для финала
